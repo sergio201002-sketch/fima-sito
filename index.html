@@ -427,7 +427,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1"></script>
+<script src="data.js?v=1794419535"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -517,11 +517,25 @@ const hasDisc = () => discMul(S.disc) < 1;
 
 // ── ROUTING ──
 function go(r) { location.hash = r ? '#' + r : '#'; if (!r) render(); }
+function openColl(name) { go('c=' + encodeURIComponent(name)); }
+function resetFilters() {
+  Object.assign(F, { q: '', fin: '', type: '', cat: '' });
+  if (!route.startsWith('c=')) F.coll = '';
+  document.getElementById('q').value = '';
+  render();
+}
 window.addEventListener('hashchange', render);
 document.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { F = { q: '', coll: '', cat: '', type: '', fin: '', sort: F.sort }; document.getElementById('q').value = ''; go(b.dataset.nav); });
 
 function render() {
+  const prev = route;
   route = decodeURIComponent(location.hash.replace(/^#/, ''));
+  // cambiando pagina si azzerano finitura e tipologia; entrando in una serie anche la ricerca
+  // (altrimenti la nuova serie poteva sembrare vuota: "0 prodotti")
+  if (route !== prev) {
+    F.fin = ''; F.type = '';
+    if (route.startsWith('c=')) { F.q = ''; document.getElementById('q').value = ''; }
+  }
   document.querySelectorAll('[data-nav]').forEach(b => b.classList.toggle('active', b.dataset.nav === (route.startsWith('c=') ? '_' : route)));
   stopHero();
   if (route.startsWith('c=')) { F.coll = route.slice(2); renderCollection(); }
@@ -553,7 +567,8 @@ function renderHome() {
       // foto ambientata come copertina; altrimenti la foto d'apertura o il primo prodotto
       const cov = c.gal[0] || c.cov;
       const isPhoto = cov && !cov.startsWith('p/');
-      h += `<div class="coll-card ${isPhoto ? '' : 'contain'}" onclick="go('c=${encodeURIComponent(c.n)}')">
+      // il nome passa da data-coll: un apostrofo (Flo') dentro onclick rompeva il clic
+      h += `<div class="coll-card ${isPhoto ? '' : 'contain'}" data-coll="${esc(c.n)}" onclick="openColl(this.dataset.coll)">
         <img src="${IMG(cov)}" alt="${esc(c.n)}" loading="lazy"><div class="ov"></div><span class="cnt">${c.cnt} prodotti</span>
         <div class="tx"><h3>${esc(c.n)}</h3>${c.des ? `<div class="d">${esc(c.des)} design</div>` : `<div class="d">${CAT_LABEL[c.k]}</div>`}</div></div>`;
     });
@@ -649,7 +664,7 @@ function renderGrid() {
   else if (F.sort === 'c') LIST.sort((a, b) => a.c.localeCompare(b.c, 'it', { numeric: true }));
   document.getElementById('resCount').innerHTML = `<b>${LIST.length}</b> ${LIST.length === 1 ? 'prodotto' : 'prodotti'}`;
   const g = document.getElementById('grid');
-  g.innerHTML = LIST.length ? '' : `<div class="empty" style="grid-column:1/-1"><h3>Nessun prodotto trovato</h3>Prova a cambiare i filtri o la ricerca.</div>`;
+  g.innerHTML = LIST.length ? '' : `<div class="empty" style="grid-column:1/-1"><h3>Nessun prodotto trovato</h3>Prova a cambiare i filtri o la ricerca.<div style="margin-top:14px"><button class="btn btn-dark" onclick="resetFilters()">Azzera filtri</button></div></div>`;
   shown = 0;
   more();
   if (io) io.disconnect();
@@ -726,7 +741,7 @@ function drawModal() {
     ${pics.length > 1 ? `<div class="pd-thumbs">${pics.map(x => `<button class="${M.img === x[0] ? 'on' : ''}" onclick="M.img='${x[0]}';M.zoom=false;drawModal()" title="${x[0] === 'tc' ? 'Disegno tecnico' : 'Foto'}"><img src="${IMG(x[1])}"></button>`).join('')}</div>` : ''}
   </div><div class="pd-info">
     ${M.from != null ? `<button class="chip" style="margin-bottom:10px" onclick="openProduct(${M.from})">← Torna a ${esc(P[M.from].c)}</button>` : ''}
-    <div class="pd-coll" onclick="closeModal();go('c=${encodeURIComponent(p.s)}')">${esc(CAT_LABEL[p.k] || p.k)} · ${esc(p.s)} →</div>
+    <div class="pd-coll" data-coll="${esc(p.s)}" onclick="closeModal();openColl(this.dataset.coll)">${esc(CAT_LABEL[p.k] || p.k)} · ${esc(p.s)} →</div>
     <div class="pd-code">${esc(p.c)}</div><div class="pd-name">${esc(p.n)}</div>
     ${p.d.length ? `<ul class="pd-desc">${p.d.map(d => `<li>${esc(d)}</li>`).join('')}</ul>` : ''}
     ${groups.length > 1 ? `<div class="pd-sec"><label>Versione</label><div class="seg">${groups.map(g => `<button class="${g === M.grp ? 'on' : ''}" onclick="M.grp=${esc(JSON.stringify(g))};fixSel();drawModal()">${esc(g)}</button>`).join('')}</div></div>` : ''}
