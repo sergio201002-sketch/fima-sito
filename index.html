@@ -148,7 +148,8 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .pcard:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
 .pimg { aspect-ratio: 1/1; background: #fff; display: flex; align-items: center; justify-content: center; padding: 14px; position: relative; }
-.pimg img { width: 100%; height: 100%; object-fit: contain; transition: transform .4s ease; }
+/* foto posizionata dentro il quadrato: una foto verticale non allunga la scheda */
+.pimg img { position: absolute; top: 14px; left: 14px; width: calc(100% - 28px); height: calc(100% - 28px); object-fit: contain; transition: transform .4s ease; }
 .pcard:hover .pimg img { transform: scale(1.05); }
 .pimg .noimg { color: var(--light); font-size: 12px; }
 .ptag { position: absolute; top: 10px; left: 10px; display: flex; gap: 5px; flex-wrap: wrap; }
@@ -178,7 +179,8 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 /* list view */
 .grid.list { grid-template-columns: 1fr; gap: 8px; }
 .grid.list .pcard { flex-direction: row; align-items: stretch; }
-.grid.list .pimg { width: 110px; aspect-ratio: auto; flex-shrink: 0; padding: 8px; }
+.grid.list .pimg { width: 110px; aspect-ratio: 1/1; align-self: center; flex-shrink: 0; padding: 8px; }
+.grid.list .pimg img { top: 8px; left: 8px; width: calc(100% - 16px); height: calc(100% - 16px); }
 .grid.list .pbody { border-top: none; border-left: 1px solid var(--bg2); flex-direction: row; align-items: center; gap: 18px; }
 .grid.list .pname { min-height: 0; flex: 1; }
 .grid.list .pfoot { margin: 0; padding: 0; gap: 18px; }
@@ -536,7 +538,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1794582544"></script>
+<script src="data.js?v=1794585693"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -840,14 +842,16 @@ function fixSel() {
 function drawModal() {
   const p = M.p, r = M.row, groups = groupsOf(p);
   const code = orderCode(r, M.fin);
-  const pics = [['im', p.im], ['tc', p.tc]].filter(x => x[1]);
+  // nella scheda la foto grande (sito FIMA) se c'è; le miniature restano leggere
+  const pics = [['im', p.hi || p.im, p.im], ['tc', p.tc, p.tc]].filter(x => x[1]);
+  const big = (pics.find(x => x[0] === M.img) || pics[0] || [])[1];
   // righe accessorio già coperte da un prodotto collegato (es. F2801) non si ripetono
   const addons = p.v.filter(x => isAddon(p, x) && !(p.x || []).includes(x.c.split('_')[0].trim()));
   const lp = r.p;
   let h = `<button class="mclose" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
   <div class="pd"><div class="pd-media">
-    <div class="pd-main ${M.zoom ? 'zoom' : ''}" onclick="M.zoom=!M.zoom;this.classList.toggle('zoom')" onmousemove="zoomMove(event,this)">${p[M.img] ? `<img src="${IMG(p[M.img])}" alt="${esc(p.c)}">` : '<span class="noimg">foto non disponibile</span>'}</div>
-    ${pics.length > 1 ? `<div class="pd-thumbs">${pics.map(x => `<button class="${M.img === x[0] ? 'on' : ''}" onclick="M.img='${x[0]}';M.zoom=false;drawModal()" title="${x[0] === 'tc' ? 'Disegno tecnico' : 'Foto'}"><img src="${IMG(x[1])}"></button>`).join('')}</div>` : ''}
+    <div class="pd-main ${M.zoom ? 'zoom' : ''}" onclick="M.zoom=!M.zoom;this.classList.toggle('zoom')" onmousemove="zoomMove(event,this)">${big ? `<img src="${IMG(big)}" alt="${esc(p.c)}">` : '<span class="noimg">foto non disponibile</span>'}</div>
+    ${pics.length > 1 ? `<div class="pd-thumbs">${pics.map(x => `<button class="${M.img === x[0] ? 'on' : ''}" onclick="M.img='${x[0]}';M.zoom=false;drawModal()" title="${x[0] === 'tc' ? 'Disegno tecnico' : 'Foto'}"><img src="${IMG(x[2])}"></button>`).join('')}</div>` : ''}
   </div><div class="pd-info">
     ${M.from != null ? `<button class="chip" style="margin-bottom:10px" onclick="openProduct(${M.from})">← Torna a ${esc(P[M.from].c)}</button>` : ''}
     <div class="pd-coll" data-coll="${esc(p.s)}" onclick="closeModal();openColl(this.dataset.coll)">${esc(CAT_LABEL[p.k] || p.k)} · ${esc(p.s)} →</div>
@@ -1183,6 +1187,6 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1794582544"></script>
+<script src="proposta.js?v=1794585693"></script>
 </body>
 </html>

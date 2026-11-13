@@ -369,7 +369,7 @@ window.Proposte = (function () {
 
   function addProduct(p) {
     cur.items.push({ id: uid(), name: p.s.toUpperCase(), code: p.c, price: Math.round(net(p.min) * 100) / 100, list: p.min,
-      photo: p.im ? IMG(p.im) : '', tech: p.tc ? IMG(p.tc) : '', showTech: !!p.tc });
+      photo: p.hi || p.im ? IMG(p.hi || p.im) : '', tech: p.tc ? IMG(p.tc) : '', showTech: !!p.tc });
     changed(true);
     toast(p.im, `<b>${esc(p.c)}</b> aggiunto alla proposta`);
   }
@@ -412,7 +412,7 @@ window.Proposte = (function () {
           const p = BY_CODE[c.pc];
           const unit = unitNet(c);   // con lo sconto di quella riga del carrello
           cur.items.push({ id: uid(), name: (c.coll || '').toUpperCase(), code: c.code, price: Math.round(unit * 100) / 100, list: c.price,
-            photo: c.im ? IMG(c.im) : '', tech: p && p.tc ? IMG(p.tc) : '', showTech: !!(p && p.tc) });
+            photo: p && p.hi ? IMG(p.hi) : c.im ? IMG(c.im) : '', tech: p && p.tc ? IMG(p.tc) : '', showTech: !!(p && p.tc) });
         });
         changed(true);
         toast('', `${CART.length} prodotti dal carrello aggiunti`);
