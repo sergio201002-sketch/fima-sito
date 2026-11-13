@@ -332,6 +332,105 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 .saved-item button:hover { background: var(--bg2); }
 .saved-item button.del { color: var(--red); }
 
+/* ── IMPOSTAZIONI: schede + PROPOSTE ─────────────────────────── */
+.smodal.wide { max-width: 600px; }
+.stabs { display: flex; gap: 2px; background: var(--bg); border-radius: 9px; padding: 3px; margin: 0 46px 18px 0; }
+.stabs button { flex: 1; height: 34px; border-radius: 7px; font-weight: 700; font-size: 13px; color: var(--mid); }
+.stabs button.on { background: var(--dark); color: #fff; }
+.si-act { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pe { position: fixed; inset: 0; z-index: 120; background: var(--bg); display: none; flex-direction: column; }
+.pe.open { display: flex; animation: fadeIn .2s ease; }
+.pe-bar { background: linear-gradient(180deg, #161616 0%, #111 100%); color: #fff; min-height: 58px; padding: 0 18px; display: flex; align-items: center; gap: 12px; border-bottom: 3px solid var(--red); flex-shrink: 0; }
+.pe-back { display: flex; align-items: center; gap: 4px; color: rgba(255,255,255,.75); font-weight: 600; font-size: 13px; height: 36px; padding: 0 10px 0 4px; border-radius: 8px; }
+.pe-back:hover { background: rgba(255,255,255,.08); color: #fff; }
+.pe-back svg { width: 18px; height: 18px; stroke: currentColor; }
+.pe-ttl { display: flex; align-items: baseline; gap: 10px; font-family: var(--font-display); font-size: 17px; }
+.pe-ttl span { font-family: var(--font-body); font-size: 11px; color: rgba(255,255,255,.45); }
+.pe-tabs { display: none; margin-left: auto; background: rgba(255,255,255,.07); border-radius: 8px; padding: 3px; }
+.pe-tabs button { color: rgba(255,255,255,.6); height: 30px; padding: 0 11px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.pe-tabs button.on { background: #fff; color: var(--dark); }
+.pe-dl { margin-left: auto; }
+.pe-dl:disabled { opacity: .6; cursor: wait; }
+.pe-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(360px, 460px) 1fr; }
+.pe-form { overflow: auto; padding: 16px; border-right: 1px solid var(--border); }
+.pe-prev { overflow: auto; padding: 22px 28px 40px; background: #E4E2DC; }
+.pe-plabel { max-width: 640px; margin: 0 auto 6px; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--mid); font-weight: 700; }
+.pe-page { position: relative; max-width: 640px; margin: 0 auto 22px; background: #fff; aspect-ratio: 595.2756 / 841.8898; box-shadow: 0 2px 6px rgba(0,0,0,.08), 0 14px 40px rgba(0,0,0,.12); }
+.pe-page svg { display: block; width: 100%; height: 100%; }
+.pe-page text { font-family: JostPDF, Jost, sans-serif; font-weight: 300; fill: #6E6E6E; font-kerning: none; white-space: pre; }
+.pe-phint { position: absolute; left: 0; right: 0; top: 40%; text-align: center; color: var(--light); font-size: 13px; }
+.pe-card { background: var(--white); border-radius: 12px; box-shadow: var(--shadow); padding: 14px; margin-bottom: 12px; }
+.pe-card h3 { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mid); font-weight: 700; margin-bottom: 10px; font-family: var(--font-body); }
+.pe-f { display: block; margin-bottom: 8px; }
+.pe-f > span { display: block; font-size: 10.5px; color: var(--mid); font-weight: 600; margin-bottom: 4px; }
+.pe-in { width: 100%; height: 38px; border: 1px solid var(--border2); border-radius: 8px; padding: 0 10px; font-size: 13.5px; outline: none; background: #fff; }
+.pe-in:focus { border-color: var(--dark); }
+.pe-up-txt { text-transform: uppercase; }
+.pe-hint { display: block; font-size: 11px; color: var(--mid); }
+.pe-warn { display: block; font-size: 11px; color: var(--red); font-weight: 600; }
+.pe-search { position: relative; }
+.pe-search svg { position: absolute; left: 11px; top: 11px; width: 16px; height: 16px; stroke: var(--mid); }
+.pe-search .pe-in { padding-left: 34px; }
+.pe-res { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; max-height: 330px; overflow: auto; }
+.pe-ri { display: flex; align-items: center; gap: 10px; text-align: left; padding: 6px; border-radius: 8px; }
+.pe-ri:hover { background: var(--bg); }
+.pe-ri img, .pe-ri .noimg { width: 42px; height: 42px; object-fit: contain; background: #fff; border: 1px solid var(--bg2); border-radius: 6px; flex-shrink: 0; }
+.pe-rt { flex: 1; min-width: 0; }
+.pe-rt b { display: block; font-family: var(--font-display); font-size: 13px; }
+.pe-rt small { display: block; font-size: 11px; color: var(--mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pe-rp { font-size: 12px; font-weight: 700; color: var(--red); white-space: nowrap; }
+.pe-plus { width: 26px; height: 26px; border-radius: 7px; background: var(--dark); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pe-none { font-size: 12px; color: var(--mid); padding: 8px 4px; }
+.pe-addrow { display: flex; gap: 8px; margin-top: 10px; }
+.pe-addrow .btn { flex: 1; height: 36px; font-size: 12.5px; }
+.pe-addrow .btn:disabled { opacity: .45; cursor: default; }
+.pe-empty { text-align: center; color: var(--mid); font-size: 12.5px; padding: 26px 14px; line-height: 1.5; }
+.pe-ihead { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+.pe-ihead b { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mid); }
+.pe-ihead .sp { flex: 1; }
+.pe-ib { width: 30px; height: 30px; border-radius: 8px; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+.pe-ib:hover { background: var(--bg2); }
+.pe-ib:disabled { opacity: .35; cursor: default; }
+.pe-ib svg { width: 15px; height: 15px; stroke: var(--dark); }
+.pe-ib.del:hover { background: var(--red-l); }
+.pe-ib.del svg { stroke: var(--red); }
+.pe-igrid { display: grid; grid-template-columns: 112px 1fr; gap: 12px; }
+.pe-thumb { width: 112px; height: 112px; border: 1px solid var(--bg2); border-radius: 8px; background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.pe-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.pe-thumb span { font-size: 11px; color: var(--light); text-align: center; padding: 6px; }
+.pe-thumb.sm { width: 72px; height: 72px; flex-shrink: 0; }
+.pe-mbtn { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.pe-mbtn button, .pe-up { font-size: 11.5px; font-weight: 700; padding: 5px 9px; border-radius: 7px; background: var(--bg); cursor: pointer; display: inline-block; }
+.pe-mbtn button:hover, .pe-up:hover { background: var(--bg2); }
+.pe-up input { display: none; }
+.pe-tech { display: flex; gap: 12px; align-items: flex-start; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--bg2); }
+.pe-tinfo { flex: 1; min-width: 0; }
+.pe-sw { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; margin-bottom: 4px; }
+.pe-sw input { display: none; }
+.pe-sw span { width: 34px; height: 20px; border-radius: 20px; background: var(--border2); position: relative; transition: background .2s; flex-shrink: 0; }
+.pe-sw span::after { content: ''; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.pe-sw input:checked + span { background: var(--red); }
+.pe-sw input:checked + span::after { transform: translateX(14px); }
+@media (max-width: 900px) {
+  .pe-bar { padding: 0 10px; gap: 6px; }
+  .pe-back span, .pe-ttl span { display: none; }
+  .pe-ttl { font-size: 15px; }
+  .pe-tabs { display: flex; }
+  .pe-dl { margin-left: 0; padding: 0 12px; }
+  .pe-body { grid-template-columns: 1fr; }
+  .pe-form, .pe-prev { grid-row: 1; grid-column: 1; }
+  .pe[data-view="form"] .pe-prev, .pe[data-view="prev"] .pe-form { display: none; }
+  .pe-form { border-right: none; padding: 12px; }
+  .pe-prev { padding: 14px 12px 30px; }
+  .si-act { width: 100%; justify-content: flex-start; }
+  .saved-item { flex-wrap: wrap; }
+}
+@media (max-width: 420px) {
+  .pe-dl span { display: none; }
+  .pe-igrid { grid-template-columns: 86px 1fr; }
+  .pe-thumb { width: 86px; height: 86px; }
+}
+
 .hide-prices .pprice, .hide-prices .pd-prices, .hide-prices .ptable td.r, .hide-prices .addon .ai span { visibility: hidden; }
 
 /* ── MOBILE ─────────────────────────── */
@@ -409,8 +508,8 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
   <button class="hbtn" id="eyeBtn" title="Nascondi / mostra prezzi" onclick="togglePrices()">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
   </button>
-  <button class="hbtn" title="Sconti e impostazioni" onclick="openSettings()">
-    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+  <button class="hbtn" title="Impostazioni: sconto e proposte" onclick="openSettings()">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
   </button>
   <button class="cart-btn" id="cartBtn" onclick="openCart()">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>
@@ -427,7 +526,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1794419535"></script>
+<script src="data.js?v=1794582133"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -943,6 +1042,7 @@ function saveQuote() {
 }
 function openSaved() {
   const saved = lsGet('fima_saved_v1', []);
+  document.getElementById('sModalBody').classList.remove('wide');
   document.getElementById('sModalBody').innerHTML = `<button class="mclose" onclick="closeSettings()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     <h2>Preventivi salvati</h2><p class="h">Salvati in questo browser. “Apri” sostituisce il carrello attuale.</p>
     <div class="saved-list">${saved.length ? saved.map((s, k) => `<div class="saved-item"><div class="si"><b>${esc(s.name)}</b><span>${new Date(s.date).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })} · ${s.cart.length} codici · ${fmt(s.cart.reduce((a, c) => a + c.price * c.qty, 0))} listino</span></div><button onclick="loadSaved(${k})">Apri</button><button class="del" onclick="delSaved(${k})">Elimina</button></div>`).join('') : '<p class="h">Nessun preventivo salvato.</p>'}</div>`;
@@ -962,9 +1062,19 @@ function delSaved(k) {
   saved.splice(k, 1); lsSet('fima_saved_v1', saved); openSaved();
 }
 
-// ── IMPOSTAZIONI / SCONTO ──
-function openSettings() {
-  document.getElementById('sModalBody').innerHTML = `<button class="mclose" onclick="closeSettings()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+// ── IMPOSTAZIONI: SCONTO | PROPOSTE ──
+function openSettings(tab) {
+  tab = tab === 'proposte' ? 'proposte' : 'sconto';
+  const body = document.getElementById('sModalBody');
+  const head = `<button class="mclose" onclick="closeSettings()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <div class="stabs"><button class="${tab === 'sconto' ? 'on' : ''}" onclick="openSettings('sconto')">Sconto</button><button class="${tab === 'proposte' ? 'on' : ''}" onclick="openSettings('proposte')">Proposte</button></div>`;
+  body.classList.toggle('wide', tab === 'proposte');
+  if (tab === 'proposte') {
+    body.innerHTML = head + Proposte.listHTML();
+    document.getElementById('sModal').classList.add('open');
+    return;
+  }
+  body.innerHTML = head + `
     <h2>Sconto sul listino</h2><p class="h">Imposta lo sconto da applicare ai prezzi di listino: i prezzi netti compaiono su schede, carrello e preventivo. Più sconti in cascata si scrivono con il “+”.</p>
     <div class="field"><label>Sconto %</label><input id="discIn" value="${esc(S.disc)}" placeholder="es. 50+10+5"><div class="hint" id="discHint"></div>
     <div class="presets">${['', '30', '40', '50', '50+10', '50+10+5', '60'].map(v => `<button class="chip" onclick="document.getElementById('discIn').value='${v}';discPrev()">${v || 'Nessuno'}</button>`).join('')}</div></div>
@@ -1007,7 +1117,7 @@ document.getElementById('q').addEventListener('input', e => {
   }, 160);
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if (document.getElementById('sModal').classList.contains('open')) closeSettings(); else if (M) closeModal(); else closeCart(); }
+  if (e.key === 'Escape') { if (window.Proposte && Proposte.isOpen()) Proposte.back(); else if (document.getElementById('sModal').classList.contains('open')) closeSettings(); else if (M) closeModal(); else closeCart(); }
   if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') { e.preventDefault(); document.getElementById('q').focus(); }
 });
 
@@ -1017,5 +1127,6 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
+<script src="proposta.js?v=1794582133"></script>
 </body>
 </html>
