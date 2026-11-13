@@ -295,7 +295,21 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 .ci-prices { display: flex; align-items: flex-end; gap: 16px; margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--border); }
 .ci-prices small { display: block; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--mid); font-weight: 700; margin-bottom: 1px; }
 .ci-prices .cp span { font-size: 13.5px; color: var(--mid); font-weight: 600; }
-.ci-prices .cp.net b { font-family: var(--font-display); font-size: 16px; font-weight: 800; color: var(--red); }
+.ci-prices .cp span, .ci-prices .cp.tot b { white-space: nowrap; }
+.ci-prices .cp.net { cursor: text; }
+@media (max-width: 420px) {
+  .ci-prices { gap: 10px; }
+  .ci-np { width: 90px; font-size: 15px; padding: 0 6px; }
+  .ci-prices .cp span { font-size: 12.5px; }
+  .ci-prices .cp.tot b { font-size: 15px; }
+}
+.ci-np { width: 104px; height: 32px; border: 1px solid var(--border2); border-radius: 7px; padding: 0 8px; text-align: right; outline: none; background: #fff;
+  font-family: var(--font-display); font-size: 16px; font-weight: 800; color: var(--red); font-variant-numeric: tabular-nums; }
+.ci-np:hover { border-color: var(--mid); }
+.ci-np:focus { border-color: var(--dark); }
+.ci-np.own { border-color: var(--red); background: var(--red-l); }
+.ci-disc input.muted { text-decoration: line-through; opacity: .45; }
+.ci-pct.np { color: var(--red); background: var(--red-l); }
 .ci-prices .cp.tot { margin-left: auto; text-align: right; }
 .ci-prices .cp.tot b { font-family: var(--font-display); font-size: 16px; font-weight: 800; }
 .dr-empty { text-align: center; padding: 70px 20px; color: var(--mid); }
@@ -538,7 +552,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1794586171"></script>
+<script src="data.js?v=1794587060"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -950,9 +964,26 @@ function toast(im, html) {
 }
 // sconto della riga: il suo (c.sc, anche a cascata "50+10") oppure, se vuoto, quello generale
 function itemDisc(c) { return c.sc != null && String(c.sc).trim() !== '' ? String(c.sc).trim() : S.disc; }
-function unitNet(c) { return c.price * discMul(itemDisc(c)); }
+// prezzo netto scritto a mano (c.np): vale lui, lo sconto della riga non conta
+const hasNp = c => typeof c.np === 'number';
+function unitNet(c) { return hasNp(c) ? c.np : c.price * discMul(itemDisc(c)); }
 function lineNet(c) { return unitNet(c) * c.qty; }
 function discPctTxt(str) { const m = discMul(str); return m < 1 ? '−' + String(+(100 - m * 100).toFixed(2)).replace('.', ',') + '%' : ''; }
+// sconto equivalente di un netto scritto a mano (es. 186 → 80 = −56,99%)
+function npPctTxt(c) {
+  if (!c.price) return '';
+  const p = +(100 - c.np / c.price * 100).toFixed(2);
+  return p > 0 ? '−' + String(p).replace('.', ',') + '%' : p < 0 ? '+' + String(-p).replace('.', ',') + '%' : '';
+}
+function itemBadge(c) { return hasNp(c) ? 'netto fisso' + (npPctTxt(c) ? ' · ' + npPctTxt(c) : '') : discPctTxt(itemDisc(c)) || 'nessuno'; }
+const euro2 = v => fmt(v).replace('€ ', '');
+function parseEuro(s) {
+  s = String(s == null ? '' : s).replace(/[€\s]/g, '');
+  if (!s) return null;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  const v = parseFloat(s);
+  return isNaN(v) || v < 0 ? null : Math.round(v * 100) / 100;
+}
 // carrelli salvati prima: "sc. extra" (in più al generale) → sconto della riga
 function migrateCart(list, gen) {
   list.forEach(c => {
@@ -966,7 +997,14 @@ function migrateCart(list, gen) {
 migrateCart(CART, S.disc);
 function setItemDisc(k, el) {
   CART[k].sc = el.value.trim();
+  delete CART[k].np;                 // scrivendo uno sconto, il netto torna calcolato
   el.classList.toggle('own', !!CART[k].sc);
+  saveCart();
+  updateCartNums();
+}
+function setItemNet(k, el) {
+  const v = parseEuro(el.value);
+  if (v == null) delete CART[k].np; else CART[k].np = v;
   saveCart();
   updateCartNums();
 }
@@ -974,14 +1012,25 @@ function setItemDisc(k, el) {
 function updateCartNums() {
   CART.forEach((c, k) => {
     const n = document.getElementById('cin' + k), t = document.getElementById('cit' + k), p = document.getElementById('cip' + k);
-    if (n) n.textContent = fmt(unitNet(c));
+    const d = document.getElementById('cid' + k);
+    if (n) {
+      n.classList.toggle('own', hasNp(c));
+      if (document.activeElement !== n) n.value = euro2(unitNet(c));
+    }
+    if (d) d.classList.toggle('muted', hasNp(c));
     if (t) t.textContent = fmt(lineNet(c));
-    if (p) p.textContent = discPctTxt(itemDisc(c)) || 'nessuno';
+    if (p) { p.textContent = itemBadge(c); p.classList.toggle('np', hasNp(c)); }
   });
   const box = document.getElementById('cartTotals');
   if (box) box.innerHTML = cartTotalsHTML();
 }
+// sconto da mostrare in Excel e stampa: "50+10%" oppure "netto (−56,99%)"
+function discCell(c) {
+  if (hasNp(c)) return 'netto' + (npPctTxt(c) ? ' (' + npPctTxt(c) + ')' : '');
+  return discMul(itemDisc(c)) < 1 ? itemDisc(c) + '%' : '';
+}
 function discLabel() {
+  if (CART.some(hasNp)) return 'Sconti';
   const ds = new Set(CART.map(itemDisc));
   const one = ds.size === 1 ? [...ds][0] : null;
   return one ? 'Sconto ' + one : 'Sconti';
@@ -1013,10 +1062,10 @@ function drawCart() {
       <div class="ci-meta">${c.fin ? swatch(c.fin) + `<span>${esc(c.fin)} · ${esc(c.finName)}</span>` : ''}${c.var ? `<span>· ${esc(c.var)}</span>` : ''}<span>· ${esc(c.coll)}</span></div></div>
       <button class="ci-del" onclick="CART.splice(${k},1);saveCart();drawCart()" title="Rimuovi"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
       <div class="ci-bot"><div class="qty"><button onclick="cq(${k},-1)">−</button><input value="${c.qty}" onchange="CART[${k}].qty=Math.max(1,parseInt(this.value)||1);saveCart();drawCart()"><button onclick="cq(${k},1)">+</button></div>
-      <label class="ci-disc">Sconto <input class="${own ? 'own' : ''}" value="${own ? esc(c.sc) : ''}" placeholder="${esc(S.disc || '0')}" inputmode="decimal" title="Sconto di questo prodotto (es. 50+10). Vuoto = sconto generale" oninput="setItemDisc(${k},this)">%</label>
-      <span class="ci-pct" id="cip${k}">${discPctTxt(itemDisc(c)) || 'nessuno'}</span></div>
+      <label class="ci-disc">Sconto <input id="cid${k}" class="${own ? 'own' : ''}${hasNp(c) ? ' muted' : ''}" value="${own ? esc(c.sc) : ''}" placeholder="${esc(S.disc || '0')}" inputmode="decimal" title="Sconto di questo prodotto (es. 50+10). Vuoto = sconto generale" oninput="setItemDisc(${k},this)">%</label>
+      <span class="ci-pct${hasNp(c) ? ' np' : ''}" id="cip${k}">${esc(itemBadge(c))}</span></div>
       <div class="ci-prices num"><div class="cp"><small>Lordo</small><span>${fmt(c.price)}</span></div>
-        <div class="cp net"><small>Scontato</small><b id="cin${k}">${fmt(unitNet(c))}</b></div>
+        <label class="cp net"><small>Netto €</small><input id="cin${k}" class="ci-np${hasNp(c) ? ' own' : ''}" value="${euro2(unitNet(c))}" inputmode="decimal" title="Scrivi un prezzo netto per questo prodotto: vale al posto dello sconto. Cancellalo per tornare allo sconto" oninput="setItemNet(${k},this)" onchange="this.value=euro2(unitNet(CART[${k}]))"></label>
         <div class="cp tot"><small>Totale${c.qty > 1 ? ' × ' + c.qty : ''}</small><b id="cit${k}">${fmt(lineNet(c))}</b></div></div></div></div>`;
   });
   h += `</div><div class="dr-foot">
@@ -1051,7 +1100,8 @@ function orderText() {
   s += `Data: ${new Date().toLocaleDateString('it-IT')}\n\n`;
   CART.forEach(c => {
     const d = itemDisc(c);
-    s += `• ${c.code}  x${c.qty}\n   ${c.name}${c.fin ? ' – ' + c.fin + ' ' + c.finName : ''}${c.var ? ' – ' + c.var : ''}\n   Lordo ${fmt(c.price)}${discMul(d) < 1 ? ` – sconto ${d} → ${fmt(unitNet(c))}` : ''} cad.${c.qty > 1 ? ` = ${fmt(lineNet(c))}` : ''}\n`;
+    const how = hasNp(c) ? ` – netto ${fmt(c.np)}` : discMul(d) < 1 ? ` – sconto ${d} → ${fmt(unitNet(c))}` : '';
+    s += `• ${c.code}  x${c.qty}\n   ${c.name}${c.fin ? ' – ' + c.fin + ' ' + c.finName : ''}${c.var ? ' – ' + c.var : ''}\n   Lordo ${fmt(c.price)}${how} cad.${c.qty > 1 ? ` = ${fmt(lineNet(c))}` : ''}\n`;
   });
   s += `\nTotale lordo: ${fmt(t.lis)}\n`;
   if (t.lis - t.nt > 0.004) s += `${discLabel()}: −${fmt(t.lis - t.nt)}\nNetto: ${fmt(t.nt)}\n`;
@@ -1074,7 +1124,7 @@ function waOrder() { window.open('https://wa.me/?text=' + encodeURIComponent(ord
 function csvOrder() {
   const n2 = v => v.toFixed(2).replace('.', ',');
   const rows = [['Codice', 'Descrizione', 'Collezione', 'Finitura', 'Versione', 'Quantità', 'Prezzo lordo', 'Sconto %', 'Prezzo scontato', 'Totale netto']];
-  CART.forEach(c => rows.push([c.code, c.name, c.coll, c.fin ? c.fin + ' ' + c.finName : '', c.var, c.qty, n2(c.price), itemDisc(c) || '0', n2(unitNet(c)), n2(lineNet(c))]));
+  CART.forEach(c => rows.push([c.code, c.name, c.coll, c.fin ? c.fin + ' ' + c.finName : '', c.var, c.qty, n2(c.price), discCell(c) || '0', n2(unitNet(c)), n2(lineNet(c))]));
   const t = totals();
   rows.push([], ['', '', '', '', '', '', '', '', 'Totale lordo', n2(t.lis)], ['', '', '', '', '', '', '', '', 'Netto', n2(t.nt)]);
   if (S.iva) rows.push(['', '', '', '', '', '', '', '', 'Totale IVA incl.', n2(t.tot)]);
@@ -1087,7 +1137,7 @@ function csvOrder() {
 function printOrder() {
   const t = totals();
   const abs = p => new URL(IMG(p), location.href).href;
-  const rows = CART.map(c => `<tr><td><img src="${abs(thumbNow(c.im))}"></td><td><b>${esc(c.code)}</b><div>${esc(c.name)}</div><small>${esc(c.coll)}${c.fin ? ' · ' + esc(c.fin + ' ' + c.finName) : ''}${c.var ? ' · ' + esc(c.var) : ''}</small></td><td class="r">${c.qty}</td><td class="r">${fmt(c.price)}</td><td class="r">${discMul(itemDisc(c)) < 1 ? esc(itemDisc(c)) + '%' : ''}</td><td class="r">${fmt(unitNet(c))}</td><td class="r"><b>${fmt(lineNet(c))}</b></td></tr>`).join('');
+  const rows = CART.map(c => `<tr><td><img src="${abs(thumbNow(c.im))}"></td><td><b>${esc(c.code)}</b><div>${esc(c.name)}</div><small>${esc(c.coll)}${c.fin ? ' · ' + esc(c.fin + ' ' + c.finName) : ''}${c.var ? ' · ' + esc(c.var) : ''}</small></td><td class="r">${c.qty}</td><td class="r">${fmt(c.price)}</td><td class="r">${esc(discCell(c))}</td><td class="r">${fmt(unitNet(c))}</td><td class="r"><b>${fmt(lineNet(c))}</b></td></tr>`).join('');
   const w = window.open('', '_blank');
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Preventivo FIMA${CLIENT.name ? ' – ' + esc(CLIENT.name) : ''}</title><style>
     body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#111;margin:32px;font-size:12px} h1{font-size:22px;margin:0} .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #C0102A;padding-bottom:12px;margin-bottom:16px}
@@ -1197,6 +1247,6 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1794586171"></script>
+<script src="proposta.js?v=1794587060"></script>
 </body>
 </html>
