@@ -149,8 +149,14 @@ window.Proposte = (function () {
     IMGC.set(src, pr);
     return pr;
   }
+  // foto del catalogo: sempre la versione più grande e aggiornata (anche per le proposte salvate prima);
+  // le foto caricate a mano (data:) restano come sono
+  function current(src) {
+    const b = bestNow(src);
+    return b ? IMG(b) : src;
+  }
   async function prepItem(it) {
-    const [photo, tech] = await Promise.all([prep(it.photo), it.showTech ? prep(it.tech) : null]);
+    const [photo, tech] = await Promise.all([prep(current(it.photo)), it.showTech ? prep(current(it.tech)) : null]);
     return { photo, tech };
   }
   function readUpload(file) {
@@ -293,8 +299,8 @@ window.Proposte = (function () {
   }
 
   function itemHTML(it, i, n) {
-    const ph = it.photo ? `<img src="${esc(it.photo)}" alt="">` : '<span>Nessuna foto</span>';
-    const tc = it.tech ? `<img src="${esc(it.tech)}" alt="">` : '<span>Nessun disegno</span>';
+    const ph = it.photo ? `<img src="${esc(current(it.photo))}" alt="">` : '<span>Nessuna foto</span>';
+    const tc = it.tech ? `<img src="${esc(current(it.tech))}" alt="">` : '<span>Nessun disegno</span>';
     return `<section class="pe-card pe-item" data-i="${i}">
       <div class="pe-ihead"><b>Pagina ${i + 1}</b><span class="sp"></span>
         <button class="pe-ib" data-act="up" title="Sposta su" ${i ? '' : 'disabled'}><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg></button>

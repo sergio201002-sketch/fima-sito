@@ -538,7 +538,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1794585693"></script>
+<script src="data.js?v=1794586171"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -593,6 +593,16 @@ P.forEach((p, i) => {
 });
 const BY_CODE = {};
 P.forEach(p => { if (!(p.c in BY_CODE)) BY_CODE[p.c] = p; });
+// immagini aggiornate: carrelli e proposte salvati prima hanno "p/F3131.webp" senza ?v= (la foto vecchia
+// restava nella memoria del browser). thumbNow → miniatura attuale, bestNow → foto più grande disponibile
+const IMG_THUMB = {}, IMG_BEST = {};
+P.forEach(p => {
+  [p.im, p.hi].forEach(x => { if (x) { const b = x.split('?')[0]; IMG_THUMB[b] = p.im; IMG_BEST[b] = p.hi || p.im; } });
+  if (p.tc) { const b = p.tc.split('?')[0]; IMG_THUMB[b] = IMG_BEST[b] = p.tc; }
+});
+const imgBase = x => String(x).replace(/^img\//, '').split('?')[0];
+function thumbNow(x) { return x && !String(x).startsWith('data:') ? IMG_THUMB[imgBase(x)] || x : x; }
+function bestNow(x) { return x && !String(x).startsWith('data:') ? IMG_BEST[imgBase(x)] || null : null; }
 function isAddon(p, r) {
   if (r.x !== undefined || ADDON_LABELS.test(r.l)) return true;
   const base = r.c.split('_')[0].trim();
@@ -798,7 +808,7 @@ function cardHTML(p) {
   const many = p.main.length > 1;
   const q = inCartQty(p);
   return `<article class="pcard" onclick="openProduct(${p.i})">
-    <div class="pimg">${p.im ? `<img src="${IMG(p.im)}" alt="${esc(p.c)}" loading="lazy">` : '<span class="noimg">foto non disponibile</span>'}
+    <div class="pimg">${p.im ? `<img src="${IMG(p.im)}"${p.hi ? ` srcset="${IMG(p.im)} 440w, ${IMG(p.hi)} 800w" sizes="(max-width: 900px) 50vw, 330px"` : ''} alt="${esc(p.c)}" loading="lazy">` : '<span class="noimg">foto non disponibile</span>'}
       <div class="ptag">${p.th ? '<span class="th">Termostatico</span>' : ''}</div>${q ? `<span class="incart">✓ ${q}</span>` : ''}
       <div class="quick"><button class="btn btn-dark" onclick="event.stopPropagation();quickAdd(${p.i})">${many ? 'Scegli finitura' : '+ Carrello'}</button></div></div>
     <div class="pbody"><div class="pcoll">${esc(p.s)}</div><div class="pcode">${esc(p.c)}</div><div class="pname">${esc(p.n)}</div>
@@ -998,7 +1008,7 @@ function drawCart() {
   if (!CART.length) h += `<div class="dr-empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg><div style="font-weight:700;color:var(--dark);margin-bottom:4px">Il carrello è vuoto</div>Apri un prodotto, scegli la finitura e aggiungilo.</div>`;
   CART.forEach((c, k) => {
     const own = c.sc != null && String(c.sc).trim() !== '';
-    h += `<div class="citem"><img src="${IMG(c.im)}" onclick="openFromCart(${k})" title="Apri scheda"><div class="ci-main">
+    h += `<div class="citem"><img src="${IMG(thumbNow(c.im))}" onclick="openFromCart(${k})" title="Apri scheda"><div class="ci-main">
       <div class="ci-top"><div><div class="ci-code">${esc(c.code)}</div><div class="ci-name">${esc(c.name)}</div>
       <div class="ci-meta">${c.fin ? swatch(c.fin) + `<span>${esc(c.fin)} · ${esc(c.finName)}</span>` : ''}${c.var ? `<span>· ${esc(c.var)}</span>` : ''}<span>· ${esc(c.coll)}</span></div></div>
       <button class="ci-del" onclick="CART.splice(${k},1);saveCart();drawCart()" title="Rimuovi"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
@@ -1077,7 +1087,7 @@ function csvOrder() {
 function printOrder() {
   const t = totals();
   const abs = p => new URL(IMG(p), location.href).href;
-  const rows = CART.map(c => `<tr><td><img src="${abs(c.im)}"></td><td><b>${esc(c.code)}</b><div>${esc(c.name)}</div><small>${esc(c.coll)}${c.fin ? ' · ' + esc(c.fin + ' ' + c.finName) : ''}${c.var ? ' · ' + esc(c.var) : ''}</small></td><td class="r">${c.qty}</td><td class="r">${fmt(c.price)}</td><td class="r">${discMul(itemDisc(c)) < 1 ? esc(itemDisc(c)) + '%' : ''}</td><td class="r">${fmt(unitNet(c))}</td><td class="r"><b>${fmt(lineNet(c))}</b></td></tr>`).join('');
+  const rows = CART.map(c => `<tr><td><img src="${abs(thumbNow(c.im))}"></td><td><b>${esc(c.code)}</b><div>${esc(c.name)}</div><small>${esc(c.coll)}${c.fin ? ' · ' + esc(c.fin + ' ' + c.finName) : ''}${c.var ? ' · ' + esc(c.var) : ''}</small></td><td class="r">${c.qty}</td><td class="r">${fmt(c.price)}</td><td class="r">${discMul(itemDisc(c)) < 1 ? esc(itemDisc(c)) + '%' : ''}</td><td class="r">${fmt(unitNet(c))}</td><td class="r"><b>${fmt(lineNet(c))}</b></td></tr>`).join('');
   const w = window.open('', '_blank');
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Preventivo FIMA${CLIENT.name ? ' – ' + esc(CLIENT.name) : ''}</title><style>
     body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#111;margin:32px;font-size:12px} h1{font-size:22px;margin:0} .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #C0102A;padding-bottom:12px;margin-bottom:16px}
@@ -1187,6 +1197,6 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1794585693"></script>
+<script src="proposta.js?v=1794586171"></script>
 </body>
 </html>
