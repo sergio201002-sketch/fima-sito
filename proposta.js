@@ -410,7 +410,7 @@ window.Proposte = (function () {
       case 'cart':
         CART.forEach(c => {
           const p = BY_CODE[c.pc];
-          const unit = c.price * discMul(S.disc) * (1 - (parseFloat(c.disc) || 0) / 100);
+          const unit = unitNet(c);   // con lo sconto di quella riga del carrello
           cur.items.push({ id: uid(), name: (c.coll || '').toUpperCase(), code: c.code, price: Math.round(unit * 100) / 100, list: c.price,
             photo: c.im ? IMG(c.im) : '', tech: p && p.tc ? IMG(p.tc) : '', showTech: !!(p && p.tc) });
         });

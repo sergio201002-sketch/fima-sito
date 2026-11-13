@@ -285,11 +285,17 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 .ci-bot .qty button { width: 28px; }
 .ci-bot .qty input { width: 34px; font-size: 13px; }
 .ci-disc { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--mid); font-weight: 600; }
-.ci-disc input { width: 46px; height: 28px; border: 1px solid var(--border2); border-radius: 6px; text-align: center; font-weight: 700; font-size: 12px; outline: none; background: #fff; }
+.ci-disc input { width: 78px; height: 30px; border: 1px solid var(--border2); border-radius: 6px; text-align: center; font-weight: 700; font-size: 12.5px; outline: none; background: #fff; }
+.ci-disc input::placeholder { color: var(--light); font-weight: 600; }
+.ci-disc input.own { border-color: var(--red); color: var(--red); background: var(--red-l); }
 .ci-disc input:focus { border-color: var(--dark); }
-.ci-tot { margin-left: auto; text-align: right; line-height: 1.15; }
-.ci-tot small { display: block; font-size: 10.5px; color: var(--mid); }
-.ci-tot b { font-family: var(--font-display); font-size: 16px; font-weight: 800; }
+.ci-pct { font-size: 11px; font-weight: 700; color: var(--green); background: var(--green-l); padding: 3px 7px; border-radius: 20px; }
+.ci-prices { display: flex; align-items: flex-end; gap: 16px; margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.ci-prices small { display: block; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--mid); font-weight: 700; margin-bottom: 1px; }
+.ci-prices .cp span { font-size: 13.5px; color: var(--mid); font-weight: 600; }
+.ci-prices .cp.net b { font-family: var(--font-display); font-size: 16px; font-weight: 800; color: var(--red); }
+.ci-prices .cp.tot { margin-left: auto; text-align: right; }
+.ci-prices .cp.tot b { font-family: var(--font-display); font-size: 16px; font-weight: 800; }
 .dr-empty { text-align: center; padding: 70px 20px; color: var(--mid); }
 .dr-empty svg { width: 46px; height: 46px; stroke: var(--light); margin-bottom: 12px; }
 .dr-foot { background: var(--white); border-top: 1px solid var(--border); padding: 14px 18px 16px; }
@@ -468,6 +474,10 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
   .pname { min-height: 0; }
   .dr-actions { grid-template-columns: repeat(2, 1fr); }
   .dr-actions .wide { grid-column: span 2; }
+  /* da telefono il carrello scorre tutto insieme: prima i prodotti, poi totali e pulsanti */
+  .drawer { overflow-y: auto; }
+  .dr-head { position: sticky; top: 0; z-index: 2; }
+  .dr-body { flex: none; overflow: visible; }
   .pfoot { flex-direction: column; align-items: flex-start; gap: 6px; }
   .pprice { text-align: left; }
   .pprice b { font-size: 16px; }
@@ -526,7 +536,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1794582133"></script>
+<script src="data.js?v=1794582544"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -885,7 +895,7 @@ function addToCart(p, r, fin, qty) {
   const code = orderCode(r, fin);
   const ex = CART.find(c => c.code === code);
   if (ex) ex.qty += qty;
-  else CART.push({ code, pc: p.c, name: p.n, coll: p.s, fin, finName: fin ? finName(fin) : '', var: r.l && !/^standard$/i.test(r.l) ? r.l : '', price: r.p, qty, disc: 0, im: p.im });
+  else CART.push({ code, pc: p.c, name: p.n, coll: p.s, fin, finName: fin ? finName(fin) : '', var: r.l && !/^standard$/i.test(r.l) ? r.l : '', price: r.p, qty, im: p.im });
   saveCart(); bumpCart();
   toast(p.im, `<b>${esc(code)}</b> aggiunto al carrello`);
   refreshCardBadges();
@@ -898,7 +908,7 @@ function addAddon(pi, vi) {
   if (ex) ex.qty++;
   else {
     const fin = a.f[0] || a.x || '';
-    CART.push({ code, pc: tp ? tp.c : code, name: tp ? tp.n : (a.l || 'Accessorio') + ' per ' + p.c, coll: tp ? tp.s : p.s, fin, finName: fin ? finName(fin) : '', var: '', price: a.p, qty: 1, disc: 0, im: tp ? tp.im : p.im });
+    CART.push({ code, pc: tp ? tp.c : code, name: tp ? tp.n : (a.l || 'Accessorio') + ' per ' + p.c, coll: tp ? tp.s : p.s, fin, finName: fin ? finName(fin) : '', var: '', price: a.p, qty: 1, im: tp ? tp.im : p.im });
   }
   saveCart(); bumpCart(); toast(tp ? tp.im : p.im, `<b>${esc(code)}</b> aggiunto al carrello`);
 }
@@ -906,7 +916,7 @@ function addRicambio(pi, k) {
   const p = P[pi], x = p.r[k];
   const ex = CART.find(c => c.code === x.c);
   if (ex) ex.qty++;
-  else CART.push({ code: x.c, pc: x.c, name: 'Ricambio per ' + p.c, coll: p.s, fin: '', finName: '', var: '', price: x.p, qty: 1, disc: 0, im: x.im });
+  else CART.push({ code: x.c, pc: x.c, name: 'Ricambio per ' + p.c, coll: p.s, fin: '', finName: '', var: '', price: x.p, qty: 1, im: x.im });
   saveCart(); bumpCart(); toast(x.im, `<b>${esc(x.c)}</b> aggiunto al carrello`);
 }
 function refreshCardBadges() {
@@ -924,7 +934,51 @@ function toast(im, html) {
   t.classList.add('show');
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
 }
-function lineNet(c) { return c.price * discMul(S.disc) * (1 - (parseFloat(c.disc) || 0) / 100) * c.qty; }
+// sconto della riga: il suo (c.sc, anche a cascata "50+10") oppure, se vuoto, quello generale
+function itemDisc(c) { return c.sc != null && String(c.sc).trim() !== '' ? String(c.sc).trim() : S.disc; }
+function unitNet(c) { return c.price * discMul(itemDisc(c)); }
+function lineNet(c) { return unitNet(c) * c.qty; }
+function discPctTxt(str) { const m = discMul(str); return m < 1 ? '−' + String(+(100 - m * 100).toFixed(2)).replace('.', ',') + '%' : ''; }
+// carrelli salvati prima: "sc. extra" (in più al generale) → sconto della riga
+function migrateCart(list, gen) {
+  list.forEach(c => {
+    if (c.disc != null) {
+      if (c.sc == null && parseFloat(c.disc)) c.sc = [gen, String(c.disc)].filter(Boolean).join('+');
+      delete c.disc;
+    }
+  });
+  return list;
+}
+migrateCart(CART, S.disc);
+function setItemDisc(k, el) {
+  CART[k].sc = el.value.trim();
+  el.classList.toggle('own', !!CART[k].sc);
+  saveCart();
+  updateCartNums();
+}
+// aggiorna prezzi e totali mentre si scrive, senza ridisegnare il carrello (il cursore resta nel campo)
+function updateCartNums() {
+  CART.forEach((c, k) => {
+    const n = document.getElementById('cin' + k), t = document.getElementById('cit' + k), p = document.getElementById('cip' + k);
+    if (n) n.textContent = fmt(unitNet(c));
+    if (t) t.textContent = fmt(lineNet(c));
+    if (p) p.textContent = discPctTxt(itemDisc(c)) || 'nessuno';
+  });
+  const box = document.getElementById('cartTotals');
+  if (box) box.innerHTML = cartTotalsHTML();
+}
+function discLabel() {
+  const ds = new Set(CART.map(itemDisc));
+  const one = ds.size === 1 ? [...ds][0] : null;
+  return one ? 'Sconto ' + one : 'Sconti';
+}
+function cartTotalsHTML() {
+  const t = totals();
+  return `<div class="tot-row num"><span>Totale lordo</span><b>${fmt(t.lis)}</b></div>
+    ${t.lis - t.nt > 0.004 ? `<div class="tot-row num"><span>${esc(discLabel())}</span><b style="color:var(--green)">− ${fmt(t.lis - t.nt)}</b></div><div class="tot-row num"><span>Netto</span><b>${fmt(t.nt)}</b></div>` : ''}
+    ${S.iva ? `<div class="tot-row num"><span>IVA 22%</span><b>${fmt(t.iva)}</b></div>` : ''}
+    <div class="tot-row big num"><span>Totale${S.iva ? ' IVA incl.' : ''}</span><b>${fmt(t.tot)}</b></div>`;
+}
 function totals() {
   const lis = CART.reduce((a, c) => a + c.price * c.qty, 0);
   const nt = CART.reduce((a, c) => a + lineNet(c), 0);
@@ -935,26 +989,26 @@ function openCart() { drawCart(); document.getElementById('drawer').classList.ad
 function closeCart() { document.getElementById('drawer').classList.remove('open'); document.getElementById('drOv').classList.remove('open'); refreshCardBadges(); }
 function drawCart() {
   const n = CART.reduce((a, c) => a + c.qty, 0);
-  const t = totals();
   let h = `<div class="dr-head"><div><h2>Carrello</h2><div class="sub">${n} ${n === 1 ? 'pezzo' : 'pezzi'} · ${CART.length} codici</div></div>
     <button class="mclose" onclick="closeCart()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div><div class="dr-body">`;
   if (!CART.length) h += `<div class="dr-empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg><div style="font-weight:700;color:var(--dark);margin-bottom:4px">Il carrello è vuoto</div>Apri un prodotto, scegli la finitura e aggiungilo.</div>`;
   CART.forEach((c, k) => {
+    const own = c.sc != null && String(c.sc).trim() !== '';
     h += `<div class="citem"><img src="${IMG(c.im)}" onclick="openFromCart(${k})" title="Apri scheda"><div class="ci-main">
       <div class="ci-top"><div><div class="ci-code">${esc(c.code)}</div><div class="ci-name">${esc(c.name)}</div>
       <div class="ci-meta">${c.fin ? swatch(c.fin) + `<span>${esc(c.fin)} · ${esc(c.finName)}</span>` : ''}${c.var ? `<span>· ${esc(c.var)}</span>` : ''}<span>· ${esc(c.coll)}</span></div></div>
       <button class="ci-del" onclick="CART.splice(${k},1);saveCart();drawCart()" title="Rimuovi"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
       <div class="ci-bot"><div class="qty"><button onclick="cq(${k},-1)">−</button><input value="${c.qty}" onchange="CART[${k}].qty=Math.max(1,parseInt(this.value)||1);saveCart();drawCart()"><button onclick="cq(${k},1)">+</button></div>
-      <div class="ci-disc">Sc. extra <input value="${c.disc || ''}" placeholder="0" onchange="CART[${k}].disc=parseFloat(this.value.replace(',','.'))||0;saveCart();drawCart()">%</div>
-      <div class="ci-tot num"><small>${fmt(c.price)} cad.${hasDisc() || c.disc ? ' listino' : ''}</small><b>${fmt(lineNet(c))}</b></div></div></div></div>`;
+      <label class="ci-disc">Sconto <input class="${own ? 'own' : ''}" value="${own ? esc(c.sc) : ''}" placeholder="${esc(S.disc || '0')}" inputmode="decimal" title="Sconto di questo prodotto (es. 50+10). Vuoto = sconto generale" oninput="setItemDisc(${k},this)">%</label>
+      <span class="ci-pct" id="cip${k}">${discPctTxt(itemDisc(c)) || 'nessuno'}</span></div>
+      <div class="ci-prices num"><div class="cp"><small>Lordo</small><span>${fmt(c.price)}</span></div>
+        <div class="cp net"><small>Scontato</small><b id="cin${k}">${fmt(unitNet(c))}</b></div>
+        <div class="cp tot"><small>Totale${c.qty > 1 ? ' × ' + c.qty : ''}</small><b id="cit${k}">${fmt(lineNet(c))}</b></div></div></div></div>`;
   });
   h += `</div><div class="dr-foot">
     <div class="dr-fields"><input placeholder="Cliente" value="${esc(CLIENT.name)}" oninput="CLIENT.name=this.value;saveCart()"><input placeholder="Riferimento / cantiere" value="${esc(CLIENT.ref)}" oninput="CLIENT.ref=this.value;saveCart()"><textarea placeholder="Note" oninput="CLIENT.note=this.value;saveCart()">${esc(CLIENT.note)}</textarea></div>
-    <div class="tot-opts"><label>Sconto <input type="text" value="${esc(S.disc)}" placeholder="es. 50+10" onchange="S.disc=this.value.trim();saveSettings();applyDisc();drawCart()"></label><label><input type="checkbox" ${S.iva ? 'checked' : ''} onchange="S.iva=this.checked;saveSettings();drawCart()"> IVA 22%</label></div>
-    <div class="tot-row num"><span>Totale listino</span><b>${fmt(t.lis)}</b></div>
-    ${t.lis - t.nt > 0.004 ? `<div class="tot-row num"><span>Sconti</span><b style="color:var(--green)">− ${fmt(t.lis - t.nt)}</b></div><div class="tot-row num"><span>Netto</span><b>${fmt(t.nt)}</b></div>` : ''}
-    ${S.iva ? `<div class="tot-row num"><span>IVA 22%</span><b>${fmt(t.iva)}</b></div>` : ''}
-    <div class="tot-row big num"><span>Totale${S.iva ? ' IVA incl.' : ''}</span><b>${fmt(t.tot)}</b></div>
+    <div class="tot-opts"><label title="Vale per i prodotti senza uno sconto proprio">Sconto generale <input type="text" value="${esc(S.disc)}" placeholder="es. 50+10" onchange="S.disc=this.value.trim();saveSettings();applyDisc();drawCart()"></label><label><input type="checkbox" ${S.iva ? 'checked' : ''} onchange="S.iva=this.checked;saveSettings();drawCart()"> IVA 22%</label></div>
+    <div id="cartTotals">${cartTotalsHTML()}</div>
     <div class="dr-actions">
       <button class="btn btn-dark" onclick="copyOrder()" ${CART.length ? '' : 'disabled'}>Copia testo</button>
       <button class="btn btn-ghost" onclick="waOrder()" ${CART.length ? '' : 'disabled'}>WhatsApp</button>
@@ -982,10 +1036,11 @@ function orderText() {
   if (CLIENT.ref) s += `Rif.: ${CLIENT.ref}\n`;
   s += `Data: ${new Date().toLocaleDateString('it-IT')}\n\n`;
   CART.forEach(c => {
-    s += `• ${c.code}  x${c.qty}\n   ${c.name}${c.fin ? ' – ' + c.fin + ' ' + c.finName : ''}${c.var ? ' – ' + c.var : ''}\n   ${fmt(c.price)} cad.${c.disc ? ' – sc. extra ' + c.disc + '%' : ''} → ${fmt(lineNet(c))}\n`;
+    const d = itemDisc(c);
+    s += `• ${c.code}  x${c.qty}\n   ${c.name}${c.fin ? ' – ' + c.fin + ' ' + c.finName : ''}${c.var ? ' – ' + c.var : ''}\n   Lordo ${fmt(c.price)}${discMul(d) < 1 ? ` – sconto ${d} → ${fmt(unitNet(c))}` : ''} cad.${c.qty > 1 ? ` = ${fmt(lineNet(c))}` : ''}\n`;
   });
-  s += `\nTotale listino: ${fmt(t.lis)}\n`;
-  if (t.lis - t.nt > 0.004) s += `Sconto${S.disc ? ' ' + S.disc : ''}: −${fmt(t.lis - t.nt)}\nNetto: ${fmt(t.nt)}\n`;
+  s += `\nTotale lordo: ${fmt(t.lis)}\n`;
+  if (t.lis - t.nt > 0.004) s += `${discLabel()}: −${fmt(t.lis - t.nt)}\nNetto: ${fmt(t.nt)}\n`;
   if (S.iva) s += `IVA 22%: ${fmt(t.iva)}\n`;
   s += `TOTALE${S.iva ? ' IVA incl.' : ''}: ${fmt(t.tot)}\n`;
   if (CLIENT.note) s += `\nNote: ${CLIENT.note}\n`;
@@ -1003,11 +1058,12 @@ function fallbackCopy(txt, done) {
 }
 function waOrder() { window.open('https://wa.me/?text=' + encodeURIComponent(orderText()), '_blank'); }
 function csvOrder() {
-  const rows = [['Codice', 'Descrizione', 'Collezione', 'Finitura', 'Versione', 'Quantità', 'Prezzo listino', 'Sconto extra %', 'Totale netto']];
-  CART.forEach(c => rows.push([c.code, c.name, c.coll, c.fin ? c.fin + ' ' + c.finName : '', c.var, c.qty, c.price.toFixed(2).replace('.', ','), c.disc || 0, lineNet(c).toFixed(2).replace('.', ',')]));
+  const n2 = v => v.toFixed(2).replace('.', ',');
+  const rows = [['Codice', 'Descrizione', 'Collezione', 'Finitura', 'Versione', 'Quantità', 'Prezzo lordo', 'Sconto %', 'Prezzo scontato', 'Totale netto']];
+  CART.forEach(c => rows.push([c.code, c.name, c.coll, c.fin ? c.fin + ' ' + c.finName : '', c.var, c.qty, n2(c.price), itemDisc(c) || '0', n2(unitNet(c)), n2(lineNet(c))]));
   const t = totals();
-  rows.push([], ['', '', '', '', '', '', '', 'Totale listino', t.lis.toFixed(2).replace('.', ',')], ['', '', '', '', '', '', '', 'Netto', t.nt.toFixed(2).replace('.', ',')]);
-  if (S.iva) rows.push(['', '', '', '', '', '', '', 'Totale IVA incl.', t.tot.toFixed(2).replace('.', ',')]);
+  rows.push([], ['', '', '', '', '', '', '', '', 'Totale lordo', n2(t.lis)], ['', '', '', '', '', '', '', '', 'Netto', n2(t.nt)]);
+  if (S.iva) rows.push(['', '', '', '', '', '', '', '', 'Totale IVA incl.', n2(t.tot)]);
   const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -1017,7 +1073,7 @@ function csvOrder() {
 function printOrder() {
   const t = totals();
   const abs = p => new URL(IMG(p), location.href).href;
-  const rows = CART.map(c => `<tr><td><img src="${abs(c.im)}"></td><td><b>${esc(c.code)}</b><div>${esc(c.name)}</div><small>${esc(c.coll)}${c.fin ? ' · ' + esc(c.fin + ' ' + c.finName) : ''}${c.var ? ' · ' + esc(c.var) : ''}</small></td><td class="r">${c.qty}</td><td class="r">${fmt(c.price)}</td><td class="r">${c.disc ? c.disc + '%' : ''}</td><td class="r"><b>${fmt(lineNet(c))}</b></td></tr>`).join('');
+  const rows = CART.map(c => `<tr><td><img src="${abs(c.im)}"></td><td><b>${esc(c.code)}</b><div>${esc(c.name)}</div><small>${esc(c.coll)}${c.fin ? ' · ' + esc(c.fin + ' ' + c.finName) : ''}${c.var ? ' · ' + esc(c.var) : ''}</small></td><td class="r">${c.qty}</td><td class="r">${fmt(c.price)}</td><td class="r">${discMul(itemDisc(c)) < 1 ? esc(itemDisc(c)) + '%' : ''}</td><td class="r">${fmt(unitNet(c))}</td><td class="r"><b>${fmt(lineNet(c))}</b></td></tr>`).join('');
   const w = window.open('', '_blank');
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Preventivo FIMA${CLIENT.name ? ' – ' + esc(CLIENT.name) : ''}</title><style>
     body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#111;margin:32px;font-size:12px} h1{font-size:22px;margin:0} .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #C0102A;padding-bottom:12px;margin-bottom:16px}
@@ -1026,8 +1082,8 @@ function printOrder() {
     .note{margin-top:18px;color:#444} @media print{body{margin:12mm}}</style></head><body>
     <div class="top"><div style="display:flex;align-items:center"><span class="mark">FIMA</span><div><h1>Preventivo</h1><div>FIMA Carlo Frattini · Listino 2026</div></div></div>
     <div style="text-align:right">${CLIENT.name ? `<b>${esc(CLIENT.name)}</b><br>` : ''}${CLIENT.ref ? esc(CLIENT.ref) + '<br>' : ''}${new Date().toLocaleDateString('it-IT')}</div></div>
-    <table><thead><tr><th></th><th>Articolo</th><th class="r">Q.tà</th><th class="r">Listino</th><th class="r">Sc. extra</th><th class="r">Totale</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="tot"><div><span>Totale listino</span><span>${fmt(t.lis)}</span></div>${t.lis - t.nt > 0.004 ? `<div><span>Sconto${S.disc ? ' ' + esc(S.disc) : ''}</span><span>− ${fmt(t.lis - t.nt)}</span></div><div><span>Netto</span><span>${fmt(t.nt)}</span></div>` : ''}${S.iva ? `<div><span>IVA 22%</span><span>${fmt(t.iva)}</span></div>` : ''}<div class="g"><span>Totale${S.iva ? ' IVA incl.' : ''}</span><span>${fmt(t.tot)}</span></div></div>
+    <table><thead><tr><th></th><th>Articolo</th><th class="r">Q.tà</th><th class="r">Lordo</th><th class="r">Sconto</th><th class="r">Scontato</th><th class="r">Totale</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="tot"><div><span>Totale lordo</span><span>${fmt(t.lis)}</span></div>${t.lis - t.nt > 0.004 ? `<div><span>${esc(discLabel())}</span><span>− ${fmt(t.lis - t.nt)}</span></div><div><span>Netto</span><span>${fmt(t.nt)}</span></div>` : ''}${S.iva ? `<div><span>IVA 22%</span><span>${fmt(t.iva)}</span></div>` : ''}<div class="g"><span>Totale${S.iva ? ' IVA incl.' : ''}</span><span>${fmt(t.tot)}</span></div></div>
     ${CLIENT.note ? `<div class="note"><b>Note:</b> ${esc(CLIENT.note)}</div>` : ''}
     <script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`);
   w.document.close();
@@ -1052,7 +1108,7 @@ function loadSaved(k) {
   const s = lsGet('fima_saved_v1', [])[k];
   if (!s) return;
   if (CART.length && !confirm('Sostituire il carrello attuale con “' + s.name + '”?')) return;
-  CART = JSON.parse(JSON.stringify(s.cart)); CLIENT = Object.assign({ name: '', ref: '', note: '' }, s.client);
+  CART = migrateCart(JSON.parse(JSON.stringify(s.cart)), s.disc || ''); CLIENT = Object.assign({ name: '', ref: '', note: '' }, s.client);
   if (s.disc != null) { S.disc = s.disc; saveSettings(); applyDisc(); }
   saveCart(); closeSettings(); openCart();
 }
@@ -1127,6 +1183,6 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1794582133"></script>
+<script src="proposta.js?v=1794582544"></script>
 </body>
 </html>
