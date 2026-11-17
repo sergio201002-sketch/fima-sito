@@ -2,7 +2,9 @@
 /* Proposte commerciali in PDF (Impostazioni → Proposte).
    Un solo motore di impaginazione (layoutPage) disegna sia l'anteprima SVG sia il PDF (jsPDF),
    con le misure del modello: A4 verticale, margini 50 pt, Jost Light, testo #6E6E6E, righe #C8272E,
-   un prodotto per pagina. I prezzi si cambiano solo nella proposta, mai nel listino. */
+   un prodotto per pagina. I prezzi si cambiano solo nella proposta, mai nel listino.
+   Il "resoconto campioni" è lo stesso PDF senza prezzi: al loro posto un cerchio grande col colore
+   della finitura scelta e la sua sigla (es. CN). */
 window.Proposte = (function () {
   const PG = { w: 595.2756, h: 841.8898, m: 50 };
   PG.r = PG.w - PG.m;
@@ -10,6 +12,11 @@ window.Proposte = (function () {
   const RED = '#C8272E';
   const KEY = 'fima_proposte_v1';
   const PREFIX = 'PROPOSTA PER LAVORO ';
+  const PREFIX_C = 'RESOCONTO CAMPIONI ';
+  const DOT = 46;               // diametro del cerchio finitura (pt)
+  const DOT_DARK = '#3C3C3C';   // sigla sui colori chiari
+  const DOT_RING = '#D2D2D2';   // bordino sui colori quasi bianchi
+  const isCamp = pr => !!pr && pr.kind === 'campioni';
   const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 
   let LIST = loadAll();
@@ -62,8 +69,53 @@ window.Proposte = (function () {
   }
   function fileName(pr) {
     const clean = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/&/g, 'e').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-    const t = clean(titleText(pr).replace(/^PROPOSTA(\s+PER\s+LAVORO)?\s*/, '')) || 'Proposta';
-    return `Proposta_${t}_${clean(dateIt(pr.date)) || 'senza_data'}.pdf`;
+    const t = clean(titleText(pr).replace(/^(PROPOSTA(\s+PER\s+LAVORO)?|RESOCONTO(\s+CAMPIONI)?|CAMPIONI)\s*/, ''));
+    const kind = isCamp(pr) ? 'Resoconto_campioni' : 'Proposta';
+    return `${kind}_${t || (isCamp(pr) ? 'cliente' : 'Proposta')}_${clean(dateIt(pr.date)) || 'senza_data'}.pdf`;
+  }
+
+  // ── finiture (resoconto campioni) ──
+  function lum(hex) {
+    const v = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+  }
+  function finInfo(it) {
+    const f = String(it.fin || '').trim();
+    if (!f) return null;
+    const col = /^#[0-9a-f]{6}$/i.test(it.finCol || '') ? it.finCol.toLowerCase() : (FIN_COLOR[f] || '#bbbbbb');
+    const L = lum(col);
+    // sigla bianca o scura: quella che si legge meglio su quel colore
+    const tc = 1.05 / (L + 0.05) >= (L + 0.05) / (lum(DOT_DARK) + 0.05) ? '#ffffff' : DOT_DARK;
+    return { f, col, tc, ring: L > 0.72 };
+  }
+  // prodotto del catalogo da cui viene la riga (anche per le proposte salvate prima, che hanno solo il codice)
+  function prodOf(it) {
+    if (it.pc && BY_CODE[it.pc]) return BY_CODE[it.pc];
+    const n = norm(it.code || '');
+    if (!n) return null;
+    return BY_CODE[it.code] || P.find(p => norm(p.c) === n || p.full.includes(n)) || null;
+  }
+  function finFromCode(p, code) {
+    const n = norm(code || '');
+    if (n) for (const r of p.v) for (const f of r.f) if (norm(orderCode(r, f)) === n) return f;
+    return '';
+  }
+  // codice ordine con la sigla della finitura (F5801 + CN → F5801CN); un codice scritto a mano non si tocca
+  function syncCode(it) {
+    const p = prodOf(it);
+    if (!p || !it.fin) return;
+    const n = norm(it.code || '');
+    let row = null;
+    if (n) for (const r of p.v) for (const f of (r.f.length ? r.f : [''])) if (!row && norm(orderCode(r, f)) === n) row = r;
+    if (n && n !== norm(p.c) && !row) return;
+    const r = (row && p.v.find(x => x.c === row.c && x.f.includes(it.fin))) || p.main.find(x => x.f.includes(it.fin)) || p.v.find(x => x.f.includes(it.fin));
+    // finitura che il prodotto non ha a listino: torna il codice base, senza sigla inventata
+    it.code = r ? orderCode(r, it.fin) : p.c;
+  }
+  function ensureFin(it) {
+    if (it.fin) return;
+    const p = prodOf(it);
+    it.fin = p ? finFromCode(p, it.code) || p.fins[0] || '' : '';
   }
   function loadScript(src) {
     return new Promise((res, rej) => {
@@ -184,30 +236,52 @@ window.Proposte = (function () {
   }
   function layoutPage(pr, it, im, measure) {
     const ops = [];
-    const T = (s, x, y, size, align) => ops.push({ k: 't', s, x, y, size, align: align || 'left' });
+    const T = (s, x, y, size, align, col) => ops.push({ k: 't', s, x, y, size, align: align || 'left', col });
     const L = (x1, x2, y, w) => ops.push({ k: 'l', x1, x2, y, w });
+    const fi = isCamp(pr) ? finInfo(it) : null;
+    // il cerchio è più alto della didascalia: nel resoconto codice e scheda tecnica scendono di 17 pt
+    const dy = fi ? 17 : 0;
     // intestazione: titolo 24 pt a sinistra, data 10,5 pt a destra, riga rossa 0,8 pt
     T(titleText(pr), PG.m, 70, 24);
     T(dateIt(pr.date), PG.r, 67, 10.5, 'right');
     L(PG.m, PG.r, 84, 0.8);
     // foto centrata, alta al massimo 245 pt
-    if (im.photo) ops.push(Object.assign({ k: 'i', img: im.photo }, fit(im.photo, PG.m, 110, PG.r - PG.m, 245)));
+    if (im.photo) ops.push(Object.assign({ k: 'i', img: im.photo }, fit(im.photo, PG.m, 110, PG.r - PG.m, fi ? 240 : 245)));
     // didascalia 17 pt con righe rosse 1,1 pt fino ai margini, a 18 pt dal testo
-    const cap = caption(it);
-    if (cap) {
-      const tw = measure(cap, 17);
-      const a = PG.cx - tw / 2 - 18, b = PG.cx + tw / 2 + 18;
-      T(cap, PG.cx, 391, 17, 'center');
-      if (a > PG.m) L(PG.m, a, 385, 1.1);
-      if (b < PG.r) L(b, PG.r, 385, 1.1);
+    if (isCamp(pr)) {
+      // NOME  ● sigla: il cerchio prende il posto del prezzo, centrato sulla riga rossa
+      const name = (it.name || '').trim();
+      const tw = name ? measure(name, 17) : 0;
+      const gw = tw + (name && fi ? 22 : 0) + (fi ? DOT : 0);
+      if (gw > 0) {
+        const x0 = PG.cx - gw / 2, a = x0 - 18, b = PG.cx + gw / 2 + 18;
+        if (name) T(name, x0, 391, 17);
+        if (fi) {
+          const cx = PG.cx + gw / 2 - DOT / 2;
+          ops.push({ k: 'c', x: cx, y: 385, r: DOT / 2, col: fi.col, ring: fi.ring });
+          const size = Math.min(17, DOT * 0.62 / (measure(fi.f, 10) / 10));
+          T(fi.f, cx, 385 + size * 0.35, size, 'center', fi.tc);   // 0,35 = metà dell'altezza delle maiuscole di Jost
+        }
+        if (a > PG.m) L(PG.m, a, 385, 1.1);
+        if (b < PG.r) L(b, PG.r, 385, 1.1);
+      }
+    } else {
+      const cap = caption(it);
+      if (cap) {
+        const tw = measure(cap, 17);
+        const a = PG.cx - tw / 2 - 18, b = PG.cx + tw / 2 + 18;
+        T(cap, PG.cx, 391, 17, 'center');
+        if (a > PG.m) L(PG.m, a, 385, 1.1);
+        if (b < PG.r) L(b, PG.r, 385, 1.1);
+      }
     }
-    if ((it.code || '').trim()) T('Cod. ' + it.code.trim(), PG.cx, 410, 11, 'center');
+    if ((it.code || '').trim()) T('Cod. ' + it.code.trim(), PG.cx, 410 + dy, 11, 'center');
     // scheda tecnica: disegno fino a 40 pt dal fondo
     if (it.showTech && im.tech) {
-      T('SCHEDA TECNICA', PG.m, 433, 10);
-      T('Quote in mm', PG.r, 433, 10, 'right');
-      L(PG.m, PG.r, 439, 0.8);
-      ops.push(Object.assign({ k: 'i', img: im.tech }, fit(im.tech, PG.m, 451, PG.r - PG.m, PG.h - 40 - 451)));
+      T('SCHEDA TECNICA', PG.m, 433 + dy, 10);
+      T('Quote in mm', PG.r, 433 + dy, 10, 'right');
+      L(PG.m, PG.r, 439 + dy, 0.8);
+      ops.push(Object.assign({ k: 'i', img: im.tech }, fit(im.tech, PG.m, 451 + dy, PG.r - PG.m, PG.h - 40 - 451 - dy)));
     }
     return ops;
   }
@@ -216,7 +290,10 @@ window.Proposte = (function () {
     for (const o of ops) {
       if (o.k === 't') {
         const a = o.align === 'center' ? 'middle' : o.align === 'right' ? 'end' : 'start';
-        s += `<text x="${o.x}" y="${o.y}" font-size="${o.size}" text-anchor="${a}" xml:space="preserve">${esc(o.s)}</text>`;
+        s += `<text x="${o.x}" y="${o.y}" font-size="${o.size}" text-anchor="${a}" xml:space="preserve"${o.col ? ` style="fill:${o.col}"` : ''}>${esc(o.s)}</text>`;
+      } else if (o.k === 'c') {
+        if (o.ring) s += `<circle cx="${o.x}" cy="${o.y}" r="${o.r}" fill="${DOT_RING}"/>`;
+        s += `<circle cx="${o.x}" cy="${o.y}" r="${o.ring ? o.r - 0.7 : o.r}" fill="${o.col}"/>`;
       } else if (o.k === 'l') {
         s += `<line x1="${o.x1}" y1="${o.y}" x2="${o.x2}" y2="${o.y}" stroke="${RED}" stroke-width="${o.w}"/>`;
       } else {
@@ -230,10 +307,11 @@ window.Proposte = (function () {
   function listHTML() {
     LIST = loadAll();
     const rows = LIST.map(p => `<div class="saved-item"><div class="si"><b>${esc(titleText(p) || 'Senza titolo')}</b>
-      <span>${esc(dateIt(p.date))} · ${p.items.length} ${p.items.length === 1 ? 'prodotto' : 'prodotti'} · modificata ${new Date(p.updated).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</span></div>
+      <span><i class="pe-tag${isCamp(p) ? ' c' : ''}">${isCamp(p) ? 'Campioni' : 'Proposta'}</i>${esc(dateIt(p.date))} · ${p.items.length} ${p.items.length === 1 ? 'prodotto' : 'prodotti'} · modificata ${new Date(p.updated).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })}</span></div>
       <div class="si-act"><button data-pact="open" data-id="${p.id}">Apri</button><button data-pact="dup" data-id="${p.id}">Duplica</button><button class="del" data-pact="del" data-id="${p.id}">Elimina</button></div></div>`).join('');
-    return `<h2>Proposte</h2><p class="h">Proposte commerciali in PDF da mandare ai clienti: un prodotto per pagina con foto, prezzo e scheda tecnica. I prezzi che scrivi qui valgono solo per la proposta. Restano salvate in questo browser.</p>
-      <button class="btn btn-red" data-pact="new">+ Nuova proposta</button>
+    return `<h2>Proposte e campioni</h2><p class="h">Proposte commerciali in PDF da mandare ai clienti: un prodotto per pagina con foto, prezzo e scheda tecnica. I prezzi che scrivi qui valgono solo per la proposta.
+      Il <b>resoconto campioni</b> è lo stesso PDF senza prezzi: al posto del prezzo c'è un cerchio col colore della finitura scelta e la sua sigla. Restano salvati in questo browser.</p>
+      <div class="pe-newrow"><button class="btn btn-red" data-pact="new">+ Nuova proposta</button><button class="btn btn-dark" data-pact="newc">+ Resoconto campioni</button></div>
       <div class="saved-list" style="margin-top:10px">${rows || '<p class="h" style="margin:14px 0 0">Nessuna proposta salvata.</p>'}</div>`;
   }
   document.getElementById('sModalBody').addEventListener('click', e => {
@@ -241,13 +319,14 @@ window.Proposte = (function () {
     if (!b) return;
     const id = b.dataset.id, p = LIST.find(x => x.id === id);
     if (b.dataset.pact === 'new') open(null);
+    else if (b.dataset.pact === 'newc') open(null, 'campioni');
     else if (b.dataset.pact === 'open' && p) open(id);
     else if (b.dataset.pact === 'dup' && p) {
       const c = JSON.parse(JSON.stringify(p));
       c.id = uid(); c.title = (p.title || '').trim() + ' (copia)'; c.updated = Date.now();
       c.items.forEach(it => { it.id = uid(); });
       LIST.unshift(c);
-      if (saveAll()) toast('', 'Proposta duplicata');
+      if (saveAll()) toast('', isCamp(p) ? 'Resoconto duplicato' : 'Proposta duplicata');
       openSettings('proposte');
     } else if (b.dataset.pact === 'del' && p) {
       if (!confirm('Eliminare la proposta “' + (titleText(p) || 'Senza titolo') + '”?')) return;
@@ -263,7 +342,7 @@ window.Proposte = (function () {
   root.id = 'pe';
   root.innerHTML = `<div class="pe-bar">
       <button class="pe-back" data-act="back"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg><span>Proposte</span></button>
-      <div class="pe-ttl"><b>Proposta</b><span id="peSaved"></span></div>
+      <div class="pe-ttl"><b id="peKind"></b><span id="peSaved"></span></div>
       <div class="pe-tabs"><button data-view="form">Modifica</button><button data-view="prev">Anteprima</button></div>
       <button class="btn btn-red pe-dl" data-act="pdf"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span>Scarica PDF</span></button>
     </div>
@@ -271,9 +350,11 @@ window.Proposte = (function () {
   document.body.appendChild(root);
   const form = root.querySelector('#peForm'), prevBox = root.querySelector('#pePrev');
 
-  function open(id) {
+  function open(id, kind) {
     const src = id ? LIST.find(x => x.id === id) : null;
-    cur = src ? JSON.parse(JSON.stringify(src)) : { id: uid(), title: PREFIX, date: todayISO(), items: [], updated: Date.now() };
+    const camp = kind === 'campioni';
+    cur = src ? JSON.parse(JSON.stringify(src))
+      : { id: uid(), kind: camp ? 'campioni' : 'proposta', title: camp ? PREFIX_C : PREFIX, date: todayISO(), items: [], updated: Date.now() };
     closeSettings();
     view = 'form';
     root.classList.add('open');
@@ -312,8 +393,8 @@ window.Proposte = (function () {
         <div class="pe-fields">
           <label class="pe-f"><span>Nome</span><input class="pe-in" data-k="name" value="${esc(it.name)}" placeholder="es. MAST"></label>
           <label class="pe-f"><span>Codice</span><input class="pe-in" data-k="code" value="${esc(it.code)}" placeholder="es. F3131"></label>
-          <label class="pe-f"><span>Prezzo €</span><input class="pe-in" data-k="price" inputmode="decimal" value="${it.price == null ? '' : esc(priceIt(it.price))}" placeholder="0,00"></label>
-          ${it.list != null ? `<small class="pe-hint">Listino ${esc(fmt(it.list))} · il prezzo cambia solo nella proposta</small>` : ''}
+          ${isCamp(cur) ? finField(it) : `<label class="pe-f"><span>Prezzo €</span><input class="pe-in" data-k="price" inputmode="decimal" value="${it.price == null ? '' : esc(priceIt(it.price))}" placeholder="0,00"></label>
+          ${it.list != null ? `<small class="pe-hint">Listino ${esc(fmt(it.list))} · il prezzo cambia solo nella proposta</small>` : ''}`}
         </div>
       </div>
       <div class="pe-tech">
@@ -326,11 +407,41 @@ window.Proposte = (function () {
       </div>
     </section>`;
   }
+  // finitura del campione: prima quelle del prodotto, poi tutte le altre; il colore del cerchio si può ritoccare
+  function finField(it) {
+    const p = prodOf(it), own = p ? p.fins : [];
+    const others = Object.keys(FIN).filter(f => !own.includes(f));
+    const opt = f => `<option value="${esc(f)}" ${f === it.fin ? 'selected' : ''}>${esc(f)} · ${esc(finName(f))}</option>`;
+    const fi = finInfo(it);
+    const lost = it.fin && !own.includes(it.fin) && !others.includes(it.fin) ? opt(it.fin) : '';
+    return `<div class="pe-f"><span>Finitura</span><div class="pe-fin">
+        <span class="pe-fdot${fi && fi.ring ? ' ring' : ''}" style="${fi ? `background:${fi.col};color:${fi.tc}` : ''}">${fi ? esc(fi.f) : ''}</span>
+        <select class="pe-in" data-k="fin"><option value="">Nessuna</option>${lost}
+          ${own.length ? `<optgroup label="Finiture di questo prodotto">${own.map(opt).join('')}</optgroup>` : ''}
+          <optgroup label="${own.length ? 'Altre finiture' : 'Finiture FIMA'}">${others.map(opt).join('')}</optgroup></select>
+        <label class="pe-fcol" title="Cambia il colore del cerchio"><input type="color" data-k="finCol" value="${fi ? fi.col : '#bbbbbb'}" ${fi ? '' : 'disabled'}></label>
+      </div></div>
+      ${!fi ? '<small class="pe-warn">Scegli la finitura del campione</small>'
+        : p && own.length && !own.includes(fi.f) ? `<small class="pe-warn">${esc(finName(fi.f))}: non è a listino per questo prodotto</small>`
+        : `<small class="pe-hint">${esc(finName(fi.f))}${it.finCol ? ' · colore ritoccato' : ''} · nel PDF al posto del prezzo</small>`}`;
+  }
+  function setKind(k) {
+    if ((cur.kind || 'proposta') === k) return;
+    const from = (k === 'campioni' ? PREFIX : PREFIX_C).trim(), to = k === 'campioni' ? PREFIX_C : PREFIX;
+    const t = cur.title || '';
+    if (t.trim().toUpperCase().startsWith(from)) cur.title = to + t.trim().slice(from.length).trim();
+    cur.kind = k;
+    if (k === 'campioni') cur.items.forEach(it => { ensureFin(it); syncCode(it); });
+    changed(true);
+  }
   function renderForm() {
-    const nCart = CART.length;
+    const nCart = CART.length, camp = isCamp(cur);
+    root.querySelector('#peKind').innerHTML = camp ? '<i class="pe-l">Resoconto campioni</i><i class="pe-s">Campioni</i>' : 'Proposta';
     form.innerHTML = `<section class="pe-card">
         <h3>Intestazione</h3>
-        <label class="pe-f"><span>Titolo</span><input class="pe-in pe-up-txt" data-f="title" value="${esc(cur.title)}" placeholder="PROPOSTA PER LAVORO ___"></label>
+        <div class="pe-kind"><button data-kind="proposta" class="${camp ? '' : 'on'}">Proposta</button><button data-kind="campioni" class="${camp ? 'on' : ''}">Resoconto campioni</button></div>
+        <small class="pe-hint pe-khint">${camp ? 'Senza prezzi: al posto del prezzo un cerchio col colore della finitura e la sua sigla.' : 'Con il prezzo di ogni prodotto.'}</small>
+        <label class="pe-f"><span>Titolo</span><input class="pe-in pe-up-txt" data-f="title" value="${esc(cur.title)}" placeholder="${camp ? 'RESOCONTO CAMPIONI ___' : 'PROPOSTA PER LAVORO ___'}"></label>
         <label class="pe-f"><span>Data</span><input class="pe-in" type="date" data-f="date" value="${esc(cur.date)}"></label>
         <small class="pe-hint" id="peDateTxt">Nel PDF: ${esc(dateIt(cur.date))}</small>
       </section>
@@ -373,9 +484,15 @@ window.Proposte = (function () {
     renderPreview();
   }
 
-  function addProduct(p) {
-    cur.items.push({ id: uid(), name: p.s.toUpperCase(), code: p.c, price: Math.round(net(p.min) * 100) / 100, list: p.min,
-      photo: p.hi || p.im ? IMG(p.hi || p.im) : '', tech: p.tc ? IMG(p.tc) : '', showTech: !!p.tc });
+  function addProduct(p, q) {
+    const it = { id: uid(), pc: p.c, name: p.s.toUpperCase(), code: p.c, price: Math.round(net(p.min) * 100) / 100, list: p.min,
+      photo: p.hi || p.im ? IMG(p.hi || p.im) : '', tech: p.tc ? IMG(p.tc) : '', showTech: !!p.tc };
+    if (isCamp(cur)) {
+      // cercato col codice completo (es. F5801CN): quella finitura, altrimenti la prima del prodotto
+      it.fin = finFromCode(p, q) || p.fins[0] || '';
+      syncCode(it);
+    }
+    cur.items.push(it);
     changed(true);
     toast(p.im, `<b>${esc(p.c)}</b> aggiunto alla proposta`);
   }
@@ -398,10 +515,13 @@ window.Proposte = (function () {
     if (tabB) { setView(tabB.dataset.view); return; }
     const res = e.target.closest('[data-add]');
     if (res) {
-      addProduct(P[+res.dataset.add]);
-      const q = form.querySelector('#peQ'); q.value = ''; form.querySelector('#peRes').innerHTML = '';
+      const q = form.querySelector('#peQ');
+      addProduct(P[+res.dataset.add], q ? q.value.trim() : '');
+      const q2 = form.querySelector('#peQ'); q2.value = ''; form.querySelector('#peRes').innerHTML = '';
       return;
     }
+    const kb = e.target.closest('[data-kind]');
+    if (kb) { setKind(kb.dataset.kind); return; }
     const b = e.target.closest('[data-act]');
     if (!b) return;
     const card = b.closest('.pe-item'), i = card ? +card.dataset.i : -1;
@@ -417,15 +537,15 @@ window.Proposte = (function () {
         CART.forEach(c => {
           const p = BY_CODE[c.pc];
           const unit = unitNet(c);   // con lo sconto di quella riga del carrello
-          cur.items.push({ id: uid(), name: (c.coll || '').toUpperCase(), code: c.code, price: Math.round(unit * 100) / 100, list: c.price,
-            photo: p && p.hi ? IMG(p.hi) : c.im ? IMG(c.im) : '', tech: p && p.tc ? IMG(p.tc) : '', showTech: !!(p && p.tc) });
+          cur.items.push({ id: uid(), pc: c.pc, name: (c.coll || '').toUpperCase(), code: c.code, price: Math.round(unit * 100) / 100, list: c.price,
+            fin: c.fin || '', photo: p && p.hi ? IMG(p.hi) : c.im ? IMG(c.im) : '', tech: p && p.tc ? IMG(p.tc) : '', showTech: !!(p && p.tc) });
         });
         changed(true);
         toast('', `${CART.length} prodotti dal carrello aggiunti`);
         break;
       case 'up': if (i > 0) { [cur.items[i - 1], cur.items[i]] = [cur.items[i], cur.items[i - 1]]; changed(true); } break;
       case 'down': if (i < cur.items.length - 1) { [cur.items[i + 1], cur.items[i]] = [cur.items[i], cur.items[i + 1]]; changed(true); } break;
-      case 'del': if (confirm('Togliere “' + (cur.items[i].code || cur.items[i].name || 'prodotto') + '” dalla proposta?')) { cur.items.splice(i, 1); changed(true); } break;
+      case 'del': if (confirm('Togliere “' + (cur.items[i].code || cur.items[i].name || 'prodotto') + (isCamp(cur) ? '” dal resoconto?' : '” dalla proposta?'))) { cur.items.splice(i, 1); changed(true); } break;
       case 'rmphoto': cur.items[i].photo = ''; changed(true); break;
       case 'rmtech': cur.items[i].tech = ''; changed(true); break;
     }
@@ -453,12 +573,20 @@ window.Proposte = (function () {
     const it = cur.items[+card.dataset.i];
     if (t.dataset.k === 'price') it.price = parsePrice(t.value);
     else if (t.dataset.k === 'showTech') { it.showTech = t.checked; changed(true); return; }
+    else if (t.dataset.k === 'fin') { it.fin = t.value; delete it.finCol; syncCode(it); changed(true); return; }
+    else if (t.dataset.k === 'finCol') {
+      // aggiorno solo il pallino: ridisegnare la scheda chiuderebbe la tavolozza dei colori
+      it.finCol = t.value;
+      const fi = finInfo(it), dot = card.querySelector('.pe-fdot');
+      if (fi && dot) { dot.style.background = fi.col; dot.style.color = fi.tc; dot.classList.toggle('ring', fi.ring); }
+    }
     else it[t.dataset.k] = t.value;
     changed(false);
   });
   root.addEventListener('change', async e => {
     const t = e.target;
     if (t.dataset.k === 'price') { const it = cur.items[+t.closest('.pe-item').dataset.i]; t.value = it.price == null ? '' : priceIt(it.price); return; }
+    if (t.dataset.k === 'finCol') { renderForm(); return; }   // tavolozza chiusa: ora si può ridisegnare (scritta "colore ritoccato")
     if (!t.dataset.up || !t.files || !t.files[0]) return;
     const it = cur.items[+t.closest('.pe-item').dataset.i];
     try {
@@ -486,8 +614,15 @@ window.Proposte = (function () {
       const im = await prepItem(pr.items[n]);
       if ((im.photo && im.photo.blocked) || (im.tech && im.tech.blocked)) throw new Error('blocked');
       for (const o of layoutPage(pr, pr.items[n], im, measure)) {
-        if (o.k === 't') { doc.setFontSize(o.size); doc.text(o.s, o.x, o.y, o.align === 'left' ? undefined : { align: o.align }); }
-        else if (o.k === 'l') { doc.setLineWidth(o.w); doc.line(o.x1, o.y, o.x2, o.y); }
+        if (o.k === 't') {
+          if (o.col) doc.setTextColor(o.col);
+          doc.setFontSize(o.size); doc.text(o.s, o.x, o.y, o.align === 'left' ? undefined : { align: o.align });
+          if (o.col) doc.setTextColor(110, 110, 110);
+        } else if (o.k === 'c') {
+          // bordino: cerchio grigio pieno sotto, poi il colore 0,7 pt più piccolo (il colore delle righe non cambia)
+          if (o.ring) { doc.setFillColor(DOT_RING); doc.circle(o.x, o.y, o.r, 'F'); }
+          doc.setFillColor(o.col); doc.circle(o.x, o.y, o.ring ? o.r - 0.7 : o.r, 'F');
+        } else if (o.k === 'l') { doc.setLineWidth(o.w); doc.line(o.x1, o.y, o.x2, o.y); }
         else {
           if (!alias.has(o.img.url)) alias.set(o.img.url, 'im' + alias.size);
           doc.addImage(o.img.url, 'JPEG', o.x, o.y, o.w, o.h, alias.get(o.img.url));
@@ -498,7 +633,7 @@ window.Proposte = (function () {
     return doc;
   }
   async function downloadPdf(btn) {
-    if (!cur.items.length) { toast('', 'Aggiungi almeno un prodotto alla proposta'); return; }
+    if (!cur.items.length) { toast('', isCamp(cur) ? 'Aggiungi almeno un prodotto al resoconto' : 'Aggiungi almeno un prodotto alla proposta'); return; }
     const lbl = btn.querySelector('span'), old = lbl.textContent;
     btn.disabled = true; lbl.textContent = 'Creo il PDF…';
     try {
