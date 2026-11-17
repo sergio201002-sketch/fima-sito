@@ -84,10 +84,10 @@ window.Proposte = (function () {
     if (!f) return null;
     const col = /^#[0-9a-f]{6}$/i.test(it.finCol || '') ? it.finCol.toLowerCase() : (FIN_COLOR[f] || '#bbbbbb');
     const L = lum(col);
-    // sigla bianca o scura: quella che si legge meglio su quel colore
-    const tc = 1.05 / (L + 0.05) >= (L + 0.05) / (lum(DOT_DARK) + 0.05) ? '#ffffff' : DOT_DARK;
-    return { f, col, tc, ring: L > 0.72 };
+    return { f, col, tc: textOn(L), ring: L > 0.72 };
   }
+  // sigla bianca o scura: quella che si legge meglio su quel colore
+  const textOn = L => 1.05 / (L + 0.05) >= (L + 0.05) / (lum(DOT_DARK) + 0.05) ? '#ffffff' : DOT_DARK;
   // prodotto del catalogo da cui viene la riga (anche per le proposte salvate prima, che hanno solo il codice)
   function prodOf(it) {
     if (it.pc && BY_CODE[it.pc]) return BY_CODE[it.pc];
@@ -207,9 +207,47 @@ window.Proposte = (function () {
     const b = bestNow(src);
     return b ? IMG(b) : src;
   }
-  async function prepItem(it) {
-    const [photo, tech] = await Promise.all([prep(current(it.photo)), it.showTech ? prep(current(it.tech)) : null]);
-    return { photo, tech };
+  // cerchio del resoconto: il dischetto vero della finitura (le foto rotonde 121×121 di FIMA), ritagliato tondo
+  // e ingrandito; marmi, legni e vetri hanno la foto del pomolo, non un dischetto → restano a colore pieno
+  const DOTC = new Map();
+  function prepDot(f) {
+    const e = FIN[f];
+    if (!e || !e.im) return Promise.resolve(null);
+    if (DOTC.has(e.im)) return DOTC.get(e.im);
+    const pr = loadImg(IMG(e.im)).then(im => {
+      if (im.naturalWidth !== im.naturalHeight) return null;
+      const S = 400, c = document.createElement('canvas');
+      c.width = c.height = S;
+      const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, S, S);
+      g.save();
+      g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 1, 0, Math.PI * 2); g.clip();
+      g.imageSmoothingQuality = 'high';
+      const k = S * 1.06;   // taglio un filo il bordo del dischetto: niente alone bianco
+      g.drawImage(im, (S - k) / 2, (S - k) / 2, k, k);
+      g.restore();
+      // colore medio dove sta la sigla, per scriverla bianca o scura
+      let d;
+      try { d = g.getImageData(S * 0.25, S * 0.35, S * 0.5, S * 0.3).data; } catch (err) { return null; }   // aperto come file: colore pieno
+      const m = [0, 0, 0];
+      for (let i = 0; i < d.length; i += 4) { m[0] += d[i]; m[1] += d[i + 1]; m[2] += d[i + 2]; }
+      const hex = '#' + m.map(v => Math.round(v / (d.length / 4)).toString(16).padStart(2, '0')).join('');
+      const L = lum(hex);
+      if (L > 0.72) {   // finiture quasi bianche: bordino grigio come nel cerchio a colore pieno
+        const lw = 0.7 * S / DOT;
+        g.strokeStyle = DOT_RING; g.lineWidth = lw;
+        g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 1 - lw / 2, 0, Math.PI * 2); g.stroke();
+      }
+      const url = c.toDataURL('image/jpeg', 0.92);
+      return { url, purl: dataUrlToObjectUrl(url), w: S, h: S, tc: textOn(L) };
+    }).catch(() => null);
+    DOTC.set(e.im, pr);
+    return pr;
+  }
+  async function prepItem(it, camp) {
+    const dotF = camp && it.fin && !it.finCol ? it.fin : '';
+    const [photo, tech, dot] = await Promise.all([prep(current(it.photo)), it.showTech ? prep(current(it.tech)) : null, dotF ? prepDot(dotF) : null]);
+    return { photo, tech, dot };
   }
   function readUpload(file) {
     return new Promise((res, rej) => {
@@ -258,9 +296,10 @@ window.Proposte = (function () {
         if (name) T(name, x0, 391, 17);
         if (fi) {
           const cx = PG.cx + gw / 2 - DOT / 2;
-          ops.push({ k: 'c', x: cx, y: 385, r: DOT / 2, col: fi.col, ring: fi.ring });
+          if (im.dot) ops.push({ k: 'i', img: im.dot, x: cx - DOT / 2, y: 385 - DOT / 2, w: DOT, h: DOT });
+          else ops.push({ k: 'c', x: cx, y: 385, r: DOT / 2, col: fi.col, ring: fi.ring });
           const size = Math.min(17, DOT * 0.62 / (measure(fi.f, 10) / 10));
-          T(fi.f, cx, 385 + size * 0.35, size, 'center', fi.tc);   // 0,35 = metà dell'altezza delle maiuscole di Jost
+          T(fi.f, cx, 385 + size * 0.35, size, 'center', im.dot ? im.dot.tc : fi.tc);   // 0,35 = metà dell'altezza delle maiuscole di Jost
         }
         if (a > PG.m) L(PG.m, a, 385, 1.1);
         if (b < PG.r) L(b, PG.r, 385, 1.1);
@@ -423,7 +462,22 @@ window.Proposte = (function () {
       </div></div>
       ${!fi ? '<small class="pe-warn">Scegli la finitura del campione</small>'
         : p && own.length && !own.includes(fi.f) ? `<small class="pe-warn">${esc(finName(fi.f))}: non è a listino per questo prodotto</small>`
-        : `<small class="pe-hint">${esc(finName(fi.f))}${it.finCol ? ' · colore ritoccato' : ''} · nel PDF al posto del prezzo</small>`}`;
+        : `<small class="pe-hint">${esc(finName(fi.f))} · nel PDF al posto del prezzo${it.finCol ? ' · colore ritoccato <button class="pe-lnk" data-act="rmcol">torna alla finitura</button>' : ''}</small>`}`;
+  }
+  // pallini dell'editor: lo stesso dischetto del PDF, appena pronto
+  function paintDots() {
+    if (!isCamp(cur)) return;
+    form.querySelectorAll('.pe-item').forEach(card => {
+      const it = cur.items[+card.dataset.i];
+      if (!it || !it.fin || it.finCol) return;
+      prepDot(it.fin).then(d => {
+        const dot = card.isConnected && card.querySelector('.pe-fdot');
+        if (!d || !dot || it.finCol) return;
+        dot.style.background = `#fff url("${d.purl}") center / cover`;
+        dot.style.color = d.tc;
+        dot.classList.remove('ring');
+      });
+    });
   }
   function setKind(k) {
     if ((cur.kind || 'proposta') === k) return;
@@ -456,6 +510,7 @@ window.Proposte = (function () {
       <div id="peItems">${cur.items.map((it, i) => itemHTML(it, i, cur.items.length)).join('') ||
         '<div class="pe-empty">Nessun prodotto: cercane uno nel catalogo o aggiungilo a mano. Ogni prodotto occupa una pagina del PDF.</div>'}</div>`;
     setView(view);
+    paintDots();
   }
 
   // anteprima dal vivo (stesso motore del PDF)
@@ -468,7 +523,7 @@ window.Proposte = (function () {
       const pages = [];
       const items = cur.items.length ? cur.items : [null];
       for (const it of items) {
-        const im = it ? await prepItem(it) : {};
+        const im = it ? await prepItem(it, isCamp(cur)) : {};
         pages.push(layoutPage(cur, it || { name: '', code: '', price: null }, im, measurePreview));
       }
       if (tok !== prevTok || !cur) return;
@@ -548,6 +603,7 @@ window.Proposte = (function () {
       case 'del': if (confirm('Togliere “' + (cur.items[i].code || cur.items[i].name || 'prodotto') + (isCamp(cur) ? '” dal resoconto?' : '” dalla proposta?'))) { cur.items.splice(i, 1); changed(true); } break;
       case 'rmphoto': cur.items[i].photo = ''; changed(true); break;
       case 'rmtech': cur.items[i].tech = ''; changed(true); break;
+      case 'rmcol': delete cur.items[i].finCol; changed(true); break;
     }
   });
   root.addEventListener('input', e => {
@@ -611,7 +667,7 @@ window.Proposte = (function () {
       if (n) doc.addPage([PG.w, PG.h], 'portrait');
       // rosso #C8272E esatto: setDrawColor di jsPDF arrotonda a 2 decimali (#C7262E)
       doc.internal.write('0.7843 0.1529 0.1804 RG');
-      const im = await prepItem(pr.items[n]);
+      const im = await prepItem(pr.items[n], isCamp(pr));
       if ((im.photo && im.photo.blocked) || (im.tech && im.tech.blocked)) throw new Error('blocked');
       for (const o of layoutPage(pr, pr.items[n], im, measure)) {
         if (o.k === 't') {
