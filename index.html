@@ -472,7 +472,64 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
   .pe-thumb { width: 86px; height: 86px; }
 }
 
-.hide-prices .pprice, .hide-prices .pd-prices, .hide-prices .ptable td.r, .hide-prices .addon .ai span { visibility: hidden; }
+/* ── PROMO E NETTI ─────────────────────────── */
+.pr-flag { display: inline-block; font-family: var(--font-display); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: #fff; background: var(--dark); padding: 5px 10px 4px; border-radius: 6px; line-height: 1; }
+.pr-flag.promo { background: var(--red); }
+.pimg .pr-flag { position: absolute; top: 10px; left: 10px; z-index: 1; font-size: 12px; padding: 6px 11px 5px; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.pr-home { display: flex; align-items: center; gap: 16px; margin-top: 22px; background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 16px 20px; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
+.pr-home:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.pr-home .fl { display: flex; gap: 6px; flex-shrink: 0; }
+.pr-home .tx { flex: 1; min-width: 0; }
+.pr-home b { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 800; }
+.pr-home small { display: block; font-size: 12px; color: var(--mid); margin-top: 2px; }
+.pr-home .arr { font-size: 22px; color: var(--red); font-weight: 700; }
+.pr-intro { color: var(--mid); font-size: 13px; line-height: 1.5; margin: -6px 0 16px; max-width: 760px; }
+.pr-bar .chips { margin-top: 0; }
+.chip.k-promo.on { background: var(--red); border-color: var(--red); }
+.chip .kd { width: 8px; height: 8px; border-radius: 50%; background: var(--dark); }
+.chip .kd.promo { background: var(--red); }
+.chip.on .kd { box-shadow: 0 0 0 1.5px #fff; }
+.pr-sec { margin-top: 34px; }
+.pr-sh { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pr-sh h3 { font-size: 22px; font-weight: 800; }
+.pr-src { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--mid); font-weight: 600; }
+.pr-notes { margin-top: 12px; background: var(--white); border-left: 3px solid var(--dark); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: var(--dark2); line-height: 1.55; max-width: 900px; }
+.pr-notes.promo { border-left-color: var(--red); }
+.pr-notes .exp { color: var(--red); font-weight: 700; }
+.pr-grid { margin-top: 14px; }
+.prc { cursor: default; }
+.prc .pimg.lnk { cursor: pointer; }
+.prc:hover .pimg img { transform: none; }
+.prc .pimg.lnk:hover img { transform: scale(1.05); }
+.pr-name { font-size: 13.5px; font-weight: 700; line-height: 1.3; }
+.pr-desc { list-style: none; font-size: 11.5px; color: var(--mid); line-height: 1.45; }
+.pr-desc li::before { content: '· '; }
+.pr-rows { margin-top: auto; padding-top: 8px; }
+.pr-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 30px; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--bg2); }
+.pr-c b { display: block; font-family: var(--font-display); font-size: 13px; font-weight: 800; overflow-wrap: anywhere; }
+.pr-c small { display: block; font-size: 10.5px; color: var(--mid); margin-top: 1px; }
+.pr-pr { text-align: right; line-height: 1.15; white-space: nowrap; }
+.pr-pr s { display: block; font-size: 10.5px; color: var(--light); }
+.pr-pr b { font-family: var(--font-display); font-size: 16px; font-weight: 800; color: var(--red); }
+.pr-add { width: 30px; height: 30px; border-radius: 8px; background: var(--dark); color: #fff; font-size: 18px; font-weight: 600; line-height: 1; }
+.pr-add:hover { background: var(--red); }
+/* schede con tanti codici (colonne doccia): larghe due posti, foto a sinistra e codici a destra */
+@media (min-width: 901px) {
+  .prc.wide { grid-column: span 2; flex-direction: row; }
+  .prc.wide .pimg { width: 40%; flex-shrink: 0; aspect-ratio: auto; min-height: 320px; }
+  .prc.wide .pbody { border-top: none; border-left: 1px solid var(--bg2); }
+}
+@media (max-width: 560px) {
+  .grid.pr-grid { grid-template-columns: 1fr; }
+  .prc .pimg { aspect-ratio: auto; height: 210px; }
+  .pr-home { padding: 14px 16px; gap: 12px; }
+  .pr-home .fl { flex-direction: column; }
+  .pr-home b { font-size: 16px; }
+}
+
+.hide-prices .pprice, .hide-prices .pd-prices, .hide-prices .ptable td.r, .hide-prices .addon .ai span, .hide-prices .pr-pr { visibility: hidden; }
 
 /* ── MOBILE ─────────────────────────── */
 @media (max-width: 900px) {
@@ -544,6 +601,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
   <nav class="nav-tabs">
     <button class="nav-tab" data-nav="">Collezioni</button>
     <button class="nav-tab" data-nav="tutti">Tutti i prodotti</button>
+    <button class="nav-tab" data-nav="promo">Promo e netti</button>
   </nav>
   <div class="hsearch">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -571,7 +629,8 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1794913387"></script>
+<script src="data.js?v=1795019413"></script>
+<script src="promo.js?v=1795019413"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -696,6 +755,7 @@ function render() {
   stopHero();
   if (route.startsWith('c=')) { F.coll = route.slice(2); renderCollection(); }
   else if (route === 'tutti') { F.coll = ''; renderAll(); }
+  else if (route === 'promo') renderPromo();
   else renderHome();
   window.scrollTo(0, 0);
 }
@@ -715,6 +775,11 @@ function renderHome() {
     <p>Sfoglia le collezioni, scegli la finitura e componi il preventivo: codici e prezzi sempre aggiornati al listino.</p>
     <div class="hero-stats"><div><b>${COLS.length}</b><span>Collezioni</span></div><div><b>${nProd.toLocaleString('it-IT')}</b><span>Prodotti</span></div><div><b>${nCodes.toLocaleString('it-IT')}</b><span>Codici</span></div><div><b>${Object.keys(FIN).length}</b><span>Finiture</span></div></div>
     <div class="hero-cta"><button class="btn btn-red" onclick="go('tutti')">Tutti i prodotti</button><button class="btn btn-white" onclick="document.getElementById('cat-BAGNO').scrollIntoView({behavior:'smooth',block:'start'})">Le collezioni</button></div></div></section>`;
+  if (PR.length) {
+    const promo = PR.filter(g => g.k === 'promo'), netti = PR.filter(g => g.k === 'netti');
+    h += `<div class="pr-home" onclick="go('promo')"><div class="fl"><span class="pr-flag promo">Promo</span><span class="pr-flag netti">Netti</span></div>
+      <div class="tx"><b>Promo e prezzi netti</b><small>${promo.map(g => esc(prTitle(g))).join(' · ')} · ${netti.length} serie a prezzo netto</small></div><span class="arr">→</span></div>`;
+  }
   CAT_ORDER.forEach(cat => {
     const cs = COLS.filter(c => c.k === cat);
     if (!cs.length) return;
@@ -1244,6 +1309,76 @@ function togglePrices() {
   toast('', S.hide ? 'Prezzi nascosti' : 'Prezzi visibili');
 }
 
+// ── PROMO E NETTI (promo.js, estratto dai PDF promo e prezzi netti FIMA) ──
+const PR = (window.FIMA_PROMO || { groups: [] }).groups;
+let PF = { k: '', g: '' };  // filtro: promo/netti e listino
+const prTitle = g => g.k === 'promo' ? g.n.replace(/^Promo\s+/, '') : g.n;
+const prSrc = g => g.k === 'promo' ? 'Promo FIMA ' + g.y : g.y === '2026' ? 'Prezzi netti 2026' : 'Prezzi netti Italia 2024';
+// "SOFFIONE OTTONE Ø 250mm" → "Soffione ottone Ø 250mm"
+const prLabel = l => l.toLowerCase().replace(/^\S/, c => c.toUpperCase()).replace(/\babs\b/g, 'ABS').replace(/ø/g, 'Ø').replace(/(\d)x(\d)/g, '$1×$2');
+function prMatch(g, x) {
+  if (!F.q) return true;
+  const hay = [g.n, x.t, x.d.join(' '), x.r.map(r => r.c + ' ' + (r.l || '')).join(' ')].join(' ').toLowerCase();
+  const hn = norm(hay);
+  return F.q.toLowerCase().split(/\s+/).filter(Boolean).every(w => hay.includes(w) || hn.includes(norm(w)));
+}
+// "Prezzi validi dal 01/05/2026 al 31/07/2026": passata la data lo si dice
+function prExpired(g) {
+  const m = g.notes.join(' ').match(/\bal (\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return '';
+  return new Date(+m[3], +m[2] - 1, +m[1], 23, 59) < new Date() ? `${m[1]}/${m[2]}/${m[3]}` : '';
+}
+function renderPromo() {
+  const n = k => PR.filter(g => g.k === k).reduce((a, g) => a + g.items.length, 0);
+  document.getElementById('app').innerHTML = `<div class="sec-title" style="margin-top:28px"><h2>Promo e prezzi netti</h2><span>${n('promo')} in promo · ${n('netti')} a prezzo netto</span></div>
+    <p class="pr-intro">Dai listini promo e netti FIMA. Il prezzo è già netto: nel carrello entra così com'è (lo sconto generale non si applica), con la quantità della confezione.</p>
+    <div class="toolbar pr-bar"><div class="chips" id="prChips"></div></div><div id="prBody"></div>`;
+  drawPromo();
+}
+function drawPromo() {
+  const vis = PR.map((g, gi) => ({ g, gi, ii: g.items.map((x, i) => i).filter(i => prMatch(g, g.items[i])) })).filter(v => v.ii.length);
+  const cnt = k => vis.filter(v => !k || v.g.k === k).reduce((a, v) => a + v.ii.length, 0);
+  if (PF.g && !vis.some(v => v.g.id === PF.g)) PF.g = '';
+  const kinds = [['', 'Tutto'], ['promo', 'Promo'], ['netti', 'Netti']];
+  document.getElementById('prChips').innerHTML = kinds.map(([k, l]) => `<button class="chip ${k ? 'k-' + k : ''} ${PF.k === k && !PF.g ? 'on' : ''}" onclick="PF={k:'${k}',g:''};drawPromo()">${l} <i>${cnt(k)}</i></button>`).join('') +
+    vis.filter(v => !PF.k || v.g.k === PF.k).map(v => `<button class="chip ${PF.g === v.g.id ? 'on' : ''}" onclick="PF.g=PF.g==='${v.g.id}'?'':'${v.g.id}';drawPromo()"><span class="kd ${v.g.k}"></span>${esc(prTitle(v.g))} <i>${v.ii.length}</i></button>`).join('');
+  const show = vis.filter(v => (!PF.k || v.g.k === PF.k) && (!PF.g || v.g.id === PF.g));
+  document.getElementById('prBody').innerHTML = show.length ? show.map(v => {
+    const g = v.g, exp = prExpired(g);
+    return `<section class="pr-sec"><div class="pr-sh"><span class="pr-flag ${g.k}">${g.k === 'promo' ? 'Promo' : 'Netti'}</span><h3>${esc(prTitle(g))}</h3><span class="pr-src">${esc(prSrc(g))} · ${v.ii.length} ${v.ii.length === 1 ? 'prodotto' : 'prodotti'}</span></div>
+      ${g.notes.length ? `<div class="pr-notes ${g.k}">${g.notes.map(t => `<div>${esc(t)}</div>`).join('')}${exp ? `<div class="exp">Attenzione: la promo è scaduta il ${exp}, verificare con FIMA se è ancora valida.</div>` : ''}</div>` : ''}
+      <div class="grid pr-grid">${v.ii.map(i => prCard(v.gi, i)).join('')}</div></section>`;
+  }).join('') : `<div class="empty"><h3>Nessun prodotto in promo o netto</h3>Prova a cambiare la ricerca.</div>`;
+}
+function prCard(gi, ii) {
+  const g = PR[gi], x = g.items[ii];
+  const p = x.pc ? BY_CODE[x.pc] : null;
+  return `<article class="pcard prc ${x.r.length > 4 ? 'wide' : ''}">
+    <div class="pimg ${p ? 'lnk' : ''}" ${p ? `onclick="openProduct(${p.i})" title="Apri la scheda del listino"` : ''}>${x.im ? `<img src="${IMG(x.im)}"${x.hi && x.hi !== x.im ? ` srcset="${IMG(x.im)} 440w, ${IMG(x.hi)} 800w" sizes="(max-width: 900px) 50vw, 330px"` : ''} alt="${esc(x.r[0].c)}" loading="lazy">` : '<span class="noimg">foto non disponibile</span>'}
+      <span class="pr-flag ${g.k}">${g.k === 'promo' ? 'Promo' : 'Netti'}</span></div>
+    <div class="pbody"><div class="pcoll">${esc(prTitle(g))}</div><div class="pr-name">${esc(x.t || (p ? p.n : x.r[0].c))}</div>
+      ${x.d.length ? `<ul class="pr-desc">${x.d.map(d => `<li>${esc(d)}</li>`).join('')}</ul>` : ''}
+      <div class="pr-rows">${x.r.map((r, ri) => {
+        const sub = [r.l ? prLabel(r.l) : '', r.q ? 'conf. ' + r.q + ' pz' : ''].filter(Boolean).join(' · ');
+        return `<div class="pr-row"><div class="pr-c"><b>${esc(r.c)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>
+          <div class="pr-pr num">${r.lp > r.p ? `<s title="Prezzo di listino">${fmt(r.lp)}</s>` : ''}<b>${fmt(r.p)}</b></div>
+          <button class="pr-add" onclick="addPromo(${gi},${ii},${ri})" title="Aggiungi al carrello${r.q ? ' (confezione da ' + r.q + ')' : ''}">+</button></div>`;
+      }).join('')}</div></div></article>`;
+}
+// nel carrello: prezzo netto fisso (np) = prezzo promo/netto; lordo = listino se il codice è a listino
+function addPromo(gi, ii, ri) {
+  const g = PR[gi], x = g.items[ii], r = x.r[ri];
+  const p = r.pc ? BY_CODE[r.pc] : null;
+  const q = r.q || 1;
+  const ex = CART.find(c => c.code === r.c && c.np === r.p);
+  if (ex) ex.qty += q;
+  else CART.push({ code: r.c, pc: r.pc || r.c, name: p && r.pc !== x.pc ? p.n : x.t || (p ? p.n : r.c), coll: g.k === 'promo' ? g.n : 'Netti ' + g.n, fin: r.f || '', finName: r.f ? finName(r.f) : '',
+    var: [g.k === 'promo' ? 'PROMO' : 'NETTI', r.l ? prLabel(r.l) : '', r.q ? 'conf. ' + r.q + ' pz' : ''].filter(Boolean).join(' · '),
+    price: r.lp || r.p, np: r.p, qty: q, im: p && p.im && r.pc !== x.pc ? p.im : x.im });  // es. la mensola nella scheda colonna: la sua foto
+  saveCart(); bumpCart();
+  toast(x.im, `<b>${esc(r.c)}</b> aggiunto al carrello${q > 1 ? ' (' + q + ' pz)' : ''}`);
+}
+
 // ── RICERCA ──
 let qT = null;
 document.getElementById('q').addEventListener('input', e => {
@@ -1251,6 +1386,7 @@ document.getElementById('q').addEventListener('input', e => {
   qT = setTimeout(() => {
     F.q = e.target.value.trim();
     if (route.startsWith('c=') && F.q) { renderGrid(); return; }
+    if (route === 'promo') { drawPromo(); return; }
     if (route !== 'tutti') { if (!F.q) return; F.coll = ''; location.hash = '#tutti'; return; }
     const h2 = document.querySelector('.sec-title h2');
     if (h2) h2.textContent = F.q ? 'Risultati per “' + F.q + '”' : 'Tutti i prodotti';
@@ -1268,6 +1404,6 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1794913387"></script>
+<script src="proposta.js?v=1795019413"></script>
 </body>
 </html>
