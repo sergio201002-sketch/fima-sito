@@ -486,6 +486,17 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 .pr-home small { display: block; font-size: 12px; color: var(--mid); margin-top: 2px; }
 .pr-home .arr { font-size: 22px; color: var(--red); font-weight: 700; }
 .pr-intro { color: var(--mid); font-size: 13px; line-height: 1.5; margin: -6px 0 16px; max-width: 760px; }
+.pr-tools { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: space-between; margin: 0 0 16px; background: var(--white);
+  border-radius: 10px; box-shadow: var(--shadow); padding: 10px 14px; }
+.pr-set { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; }
+.pr-set b { font-weight: 700; }
+.pr-set input { width: 62px; height: 34px; border: 1px solid var(--border2); border-radius: 8px; padding: 0 8px; font-size: 13px; font-weight: 700; text-align: right; outline: none; background: var(--white); }
+.pr-set input:focus { border-color: var(--dark); }
+.pr-ex { font-size: 11.5px; color: var(--mid); }
+.pr-tools .btn { height: 36px; padding: 0 16px; font-size: 12.5px; }
+.pr-tools .btn:disabled { opacity: .6; cursor: wait; }
+.pr-tier { display: block; font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--red); margin-top: 1px; }
+.pr-gift { font-size: 11.5px; font-weight: 700; color: var(--red); line-height: 1.4; }
 .pr-bar .chips { margin-top: 0; }
 .chip.k-promo.on { background: var(--red); border-color: var(--red); }
 .chip .kd { width: 8px; height: 8px; border-radius: 50%; background: var(--dark); }
@@ -629,8 +640,8 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1795019413"></script>
-<script src="promo.js?v=1795019413"></script>
+<script src="data.js?v=1795020142"></script>
+<script src="promo.js?v=1795020142"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -1313,7 +1324,35 @@ function togglePrices() {
 const PR = (window.FIMA_PROMO || { groups: [] }).groups;
 let PF = { k: '', g: '' };  // filtro: promo/netti e listino
 const prTitle = g => g.k === 'promo' ? g.n.replace(/^Promo\s+/, '') : g.n;
-const prSrc = g => g.k === 'promo' ? 'Promo FIMA ' + g.y : g.y === '2026' ? 'Prezzi netti 2026' : 'Prezzi netti Italia 2024';
+// netti Italia 2024 aggiornati: + S.prInc % (6 se mai cambiato), arrotondati all'euro come sceglie l'utente
+const prInc = () => S.prInc == null ? 6 : +S.prInc || 0;
+const prOld = g => g.k === 'netti' && g.y === '2024';
+const PR_ROUND = { su: 'arrotondati all\'euro per eccesso', giu: 'arrotondati all\'euro per difetto', no: 'senza arrotondare' };
+const prPct = () => String(prInc()).replace('.', ',') + '%';
+function prPrice(g, r) {
+  if (!prOld(g) || !prInc()) return r.p;
+  const v = r.p * (1 + prInc() / 100);
+  return S.prRound === 'giu' ? Math.floor(v + 1e-6) : S.prRound === 'no' ? Math.round(v * 100) / 100 : Math.ceil(v - 1e-6);
+}
+const prSrc = g => g.k === 'promo' ? 'Promo FIMA ' + g.y : g.y === '2026' ? 'Prezzi netti 2026'
+  : 'Prezzi netti Italia 2024' + (prInc() ? ` + ${prPct()} · ${PR_ROUND[S.prRound] || PR_ROUND.su}` : '');
+// soglie della promo dalle condizioni del PDF ("superiore a € 1.500 … 5%", "fino a € 3.000 … 5%")
+function prTiersOf(g) {
+  if (!g._t) g._t = g.notes.map(t => t.match(/(superiore a|oltre a?|fino a)\s*€\s*([\d.]+)(?:,\d+)?\D+?(\d+)\s*%/i)).filter(Boolean)
+    .map(m => ({ upTo: /^fino/i.test(m[1]), eur: +m[2].replace(/\./g, ''), pct: +m[3] }));
+  return g._t;
+}
+// pezzi di quel solo articolo per arrivare a ogni sconto: "−5% da 11 pz · −10% da 17 pz"
+const prTierTxt = (g, r) => prTiersOf(g).map(t => `−${t.pct}% da ${t.upTo ? 1 : Math.floor(t.eur / r.p) + 1} pz`).join(' · ');
+const PR_TIER_NOTE = 'Sotto ogni codice: i pezzi di quel solo articolo per arrivare a ogni sconto. Negli ordini misti conta il totale imponibile.';
+// "Con ordine minimo di 10 colonne assortite 10 mensole F2899 in omaggio": scritto sulle schede delle colonne
+const prGift = (g, x) => /colonn/i.test(x.t) && g.notes.find(t => /omaggio/i.test(t)) || '';
+function prNotes(g) {
+  const n = [...g.notes];
+  if (prTiersOf(g).length) n.push(PR_TIER_NOTE);
+  if (prOld(g) && prInc()) n.push(`Prezzi del listino netti Italia 2024 aumentati del ${prPct()}, ${PR_ROUND[S.prRound] || PR_ROUND.su}.`);
+  return n;
+}
 // "SOFFIONE OTTONE Ø 250mm" → "Soffione ottone Ø 250mm"
 const prLabel = l => l.toLowerCase().replace(/^\S/, c => c.toUpperCase()).replace(/\babs\b/g, 'ABS').replace(/ø/g, 'Ø').replace(/(\d)x(\d)/g, '$1×$2');
 function prMatch(g, x) {
@@ -1332,21 +1371,36 @@ function renderPromo() {
   const n = k => PR.filter(g => g.k === k).reduce((a, g) => a + g.items.length, 0);
   document.getElementById('app').innerHTML = `<div class="sec-title" style="margin-top:28px"><h2>Promo e prezzi netti</h2><span>${n('promo')} in promo · ${n('netti')} a prezzo netto</span></div>
     <p class="pr-intro">Dai listini promo e netti FIMA. Il prezzo è già netto: nel carrello entra così com'è (lo sconto generale non si applica), con la quantità della confezione.</p>
+    ${PR.some(prOld) ? `<div class="pr-tools"><div class="pr-set"><b>Netti Italia 2024</b><label>aumento <input id="prInc" type="number" min="0" max="100" step="0.5" value="${prInc()}"> %</label>
+      <select id="prRound" class="sel">${Object.entries({ su: 'arrotonda all\'euro per eccesso', giu: 'arrotonda all\'euro per difetto', no: 'non arrotondare' }).map(([k, l]) => `<option value="${k}" ${(S.prRound || 'su') === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <span class="pr-ex" id="prEx"></span></div>
+      <button class="btn btn-dark" onclick="exportPromoPdf(this)" title="Scarica in PDF quello che vedi qui (filtro e ricerca compresi)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span>Esporta PDF</span></button></div>` : ''}
     <div class="toolbar pr-bar"><div class="chips" id="prChips"></div></div><div id="prBody"></div>`;
+  const inc = document.getElementById('prInc'), rnd = document.getElementById('prRound');
+  if (inc) {
+    inc.oninput = () => { const v = parseFloat(String(inc.value).replace(',', '.')); S.prInc = isNaN(v) || v < 0 ? 0 : v; saveSettings(); drawPromo(); };
+    rnd.onchange = () => { S.prRound = rnd.value; saveSettings(); drawPromo(); };
+  }
   drawPromo();
 }
-function drawPromo() {
+// quello che si vede: ricerca + filtro promo/netti/listino (anche per il PDF)
+function prVisible() {
   const vis = PR.map((g, gi) => ({ g, gi, ii: g.items.map((x, i) => i).filter(i => prMatch(g, g.items[i])) })).filter(v => v.ii.length);
-  const cnt = k => vis.filter(v => !k || v.g.k === k).reduce((a, v) => a + v.ii.length, 0);
   if (PF.g && !vis.some(v => v.g.id === PF.g)) PF.g = '';
+  return { vis, show: vis.filter(v => (!PF.k || v.g.k === PF.k) && (!PF.g || v.g.id === PF.g)) };
+}
+function drawPromo() {
+  const { vis, show } = prVisible();
+  const cnt = k => vis.filter(v => !k || v.g.k === k).reduce((a, v) => a + v.ii.length, 0);
+  const ex = document.getElementById('prEx'), g24 = PR.find(prOld);
+  if (ex && g24) { const r = g24.items[0].r[0]; ex.textContent = prInc() ? `es. ${r.c}: ${fmt(r.p)} → ${fmt(prPrice(g24, r))}` : 'prezzi 2024 come da listino'; }
   const kinds = [['', 'Tutto'], ['promo', 'Promo'], ['netti', 'Netti']];
   document.getElementById('prChips').innerHTML = kinds.map(([k, l]) => `<button class="chip ${k ? 'k-' + k : ''} ${PF.k === k && !PF.g ? 'on' : ''}" onclick="PF={k:'${k}',g:''};drawPromo()">${l} <i>${cnt(k)}</i></button>`).join('') +
     vis.filter(v => !PF.k || v.g.k === PF.k).map(v => `<button class="chip ${PF.g === v.g.id ? 'on' : ''}" onclick="PF.g=PF.g==='${v.g.id}'?'':'${v.g.id}';drawPromo()"><span class="kd ${v.g.k}"></span>${esc(prTitle(v.g))} <i>${v.ii.length}</i></button>`).join('');
-  const show = vis.filter(v => (!PF.k || v.g.k === PF.k) && (!PF.g || v.g.id === PF.g));
   document.getElementById('prBody').innerHTML = show.length ? show.map(v => {
-    const g = v.g, exp = prExpired(g);
+    const g = v.g, exp = prExpired(g), notes = prNotes(g);
     return `<section class="pr-sec"><div class="pr-sh"><span class="pr-flag ${g.k}">${g.k === 'promo' ? 'Promo' : 'Netti'}</span><h3>${esc(prTitle(g))}</h3><span class="pr-src">${esc(prSrc(g))} · ${v.ii.length} ${v.ii.length === 1 ? 'prodotto' : 'prodotti'}</span></div>
-      ${g.notes.length ? `<div class="pr-notes ${g.k}">${g.notes.map(t => `<div>${esc(t)}</div>`).join('')}${exp ? `<div class="exp">Attenzione: la promo è scaduta il ${exp}, verificare con FIMA se è ancora valida.</div>` : ''}</div>` : ''}
+      ${notes.length ? `<div class="pr-notes ${g.k}">${notes.map(t => `<div>${esc(t)}</div>`).join('')}${exp ? `<div class="exp">Attenzione: la promo è scaduta il ${exp}, verificare con FIMA se è ancora valida.</div>` : ''}</div>` : ''}
       <div class="grid pr-grid">${v.ii.map(i => prCard(v.gi, i)).join('')}</div></section>`;
   }).join('') : `<div class="empty"><h3>Nessun prodotto in promo o netto</h3>Prova a cambiare la ricerca.</div>`;
 }
@@ -1358,10 +1412,12 @@ function prCard(gi, ii) {
       <span class="pr-flag ${g.k}">${g.k === 'promo' ? 'Promo' : 'Netti'}</span></div>
     <div class="pbody"><div class="pcoll">${esc(prTitle(g))}</div><div class="pr-name">${esc(x.t || (p ? p.n : x.r[0].c))}</div>
       ${x.d.length ? `<ul class="pr-desc">${x.d.map(d => `<li>${esc(d)}</li>`).join('')}</ul>` : ''}
+      ${prGift(g, x) ? `<div class="pr-gift">${esc(prGift(g, x))}</div>` : ''}
       <div class="pr-rows">${x.r.map((r, ri) => {
         const sub = [r.l ? prLabel(r.l) : '', r.q ? 'conf. ' + r.q + ' pz' : ''].filter(Boolean).join(' · ');
-        return `<div class="pr-row"><div class="pr-c"><b>${esc(r.c)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>
-          <div class="pr-pr num">${r.lp > r.p ? `<s title="Prezzo di listino">${fmt(r.lp)}</s>` : ''}<b>${fmt(r.p)}</b></div>
+        const pp = prPrice(g, r), tier = prTierTxt(g, r);
+        return `<div class="pr-row"><div class="pr-c"><b>${esc(r.c)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}${tier ? `<em class="pr-tier">${esc(tier)}</em>` : ''}</div>
+          <div class="pr-pr num">${r.lp > pp ? `<s title="Prezzo di listino">${fmt(r.lp)}</s>` : ''}<b${pp !== r.p ? ` title="Netto 2024: ${fmt(r.p)} + ${prPct()}"` : ''}>${fmt(pp)}</b></div>
           <button class="pr-add" onclick="addPromo(${gi},${ii},${ri})" title="Aggiungi al carrello${r.q ? ' (confezione da ' + r.q + ')' : ''}">+</button></div>`;
       }).join('')}</div></div></article>`;
 }
@@ -1369,14 +1425,30 @@ function prCard(gi, ii) {
 function addPromo(gi, ii, ri) {
   const g = PR[gi], x = g.items[ii], r = x.r[ri];
   const p = r.pc ? BY_CODE[r.pc] : null;
-  const q = r.q || 1;
-  const ex = CART.find(c => c.code === r.c && c.np === r.p);
+  const q = r.q || 1, pp = prPrice(g, r);
+  const ex = CART.find(c => c.code === r.c && c.np === pp);
   if (ex) ex.qty += q;
   else CART.push({ code: r.c, pc: r.pc || r.c, name: p && r.pc !== x.pc ? p.n : x.t || (p ? p.n : r.c), coll: g.k === 'promo' ? g.n : 'Netti ' + g.n, fin: r.f || '', finName: r.f ? finName(r.f) : '',
     var: [g.k === 'promo' ? 'PROMO' : 'NETTI', r.l ? prLabel(r.l) : '', r.q ? 'conf. ' + r.q + ' pz' : ''].filter(Boolean).join(' · '),
-    price: r.lp || r.p, np: r.p, qty: q, im: p && p.im && r.pc !== x.pc ? p.im : x.im });  // es. la mensola nella scheda colonna: la sua foto
+    price: r.lp || pp, np: pp, qty: q, im: p && p.im && r.pc !== x.pc ? p.im : x.im });  // es. la mensola nella scheda colonna: la sua foto
   saveCart(); bumpCart();
   toast(x.im, `<b>${esc(r.c)}</b> aggiunto al carrello${q > 1 ? ' (' + q + ' pz)' : ''}`);
+}
+
+async function exportPromoPdf(btn) {
+  const { show } = prVisible();
+  if (!show.length) return toast('', 'Niente da esportare: cambia filtro o ricerca');
+  const lbl = btn.querySelector('span'), old = lbl.textContent;
+  btn.disabled = true;
+  try {
+    const doc = await PromoPdf.build(show, (n, tot) => { lbl.textContent = `Creo il PDF… ${n}/${tot}`; });
+    const name = PromoPdf.fileName(show);
+    doc.save(name);
+    toast('', 'PDF scaricato: ' + esc(name));
+  } catch (err) {
+    console.error(err);
+    toast('', err.message === 'blocked' ? 'Aperto come file il browser blocca le foto nel PDF: usa il sito online.' : 'Non sono riuscito a creare il PDF: ' + esc(err.message || err));
+  } finally { btn.disabled = false; lbl.textContent = old; }
 }
 
 // ── RICERCA ──
@@ -1404,6 +1476,7 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1795019413"></script>
+<script src="proposta.js?v=1795020142"></script>
+<script src="promo-pdf.js?v=1795020142"></script>
 </body>
 </html>
