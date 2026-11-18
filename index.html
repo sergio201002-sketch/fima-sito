@@ -498,6 +498,41 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 .pr-tier { display: block; font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--red); margin-top: 1px; }
 .pr-gift { font-size: 11.5px; font-weight: 700; color: var(--red); line-height: 1.4; }
 .pr-bar .chips { margin-top: 0; }
+/* selezione per il PDF (carrello della sezione) */
+.pr-sel { position: absolute; top: 10px; right: 10px; z-index: 1; height: 28px; padding: 0 10px; border-radius: 7px; background: rgba(255,255,255,.94);
+  border: 1px solid var(--border2); font-size: 11.5px; font-weight: 700; color: var(--dark2); display: inline-flex; align-items: center; gap: 6px; }
+.pr-sel:hover { border-color: var(--dark); }
+.pr-sel i { width: 13px; height: 13px; border: 1.5px solid currentColor; border-radius: 3px; position: relative; flex-shrink: 0; }
+.pr-sel.on { background: var(--dark); color: #fff; border-color: var(--dark); }
+.pr-sel.on i::after { content: ''; position: absolute; left: 3.2px; top: .5px; width: 3.5px; height: 7px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.prc.sel { box-shadow: 0 0 0 2px var(--dark), var(--shadow-hover); }
+.pr-selall { margin-left: auto; height: 30px; padding: 0 12px; border-radius: 20px; border: 1px solid var(--border2); background: var(--white); font-size: 12px; font-weight: 600; color: var(--dark2); }
+.pr-selall:hover { border-color: var(--dark); }
+.sel-bar { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 160%); z-index: 90; background: var(--dark); color: #fff; border-radius: 14px;
+  padding: 9px 9px 9px 18px; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 34px rgba(0,0,0,.35); transition: transform .25s ease; max-width: calc(100vw - 24px); }
+.sel-bar.on { transform: translate(-50%, 0); }
+.sel-bar .sb-t { display: flex; flex-direction: column; line-height: 1.25; margin-right: 8px; white-space: nowrap; }
+.sel-bar .sb-t b { font-size: 13px; }
+.sel-bar .sb-t span { font-size: 11.5px; color: rgba(255,255,255,.6); }
+.sel-bar .btn { height: 36px; padding: 0 14px; font-size: 12.5px; white-space: nowrap; }
+.sel-bar .btn-ghost { background: rgba(255,255,255,.12); color: #fff; border-color: transparent; }
+.sel-bar .btn:disabled, .sl-actions .btn:disabled { opacity: .6; }
+.sl-grp { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; font-size: 14px; margin: 8px 2px 8px; }
+.sl-grp .pr-flag { font-size: 9px; padding: 4px 7px 3px; }
+.sl-rows { margin-top: 6px; }
+.sl-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--bg2); font-size: 12px; cursor: pointer; }
+.sl-row input { width: 15px; height: 15px; accent-color: var(--dark); cursor: pointer; }
+.sl-row b { font-family: var(--font-display); font-weight: 800; }
+.sl-row small { display: block; color: var(--mid); font-size: 10.5px; }
+.sl-row span { font-weight: 700; color: var(--red); white-space: nowrap; }
+.sl-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.sl-actions .btn { height: 40px; font-size: 12.5px; }
+@media (max-width: 560px) {
+  .sel-bar { left: 12px; right: 12px; bottom: 12px; transform: translateY(160%); max-width: none; padding-left: 14px; }
+  .sel-bar.on { transform: none; }
+  .sel-bar .sb-t { margin-right: auto; }
+  .pr-selall { margin-left: 0; }
+}
 .chip.k-promo.on { background: var(--red); border-color: var(--red); }
 .chip .kd { width: 8px; height: 8px; border-radius: 50%; background: var(--dark); }
 .chip .kd.promo { background: var(--red); }
@@ -540,7 +575,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
   .pr-home b { font-size: 16px; }
 }
 
-.hide-prices .pprice, .hide-prices .pd-prices, .hide-prices .ptable td.r, .hide-prices .addon .ai span, .hide-prices .pr-pr { visibility: hidden; }
+.hide-prices .pprice, .hide-prices .pd-prices, .hide-prices .ptable td.r, .hide-prices .addon .ai span, .hide-prices .pr-pr, .hide-prices .sl-row span { visibility: hidden; }
 
 /* ── MOBILE ─────────────────────────── */
 @media (max-width: 900px) {
@@ -637,11 +672,13 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="overlay" id="sModal" onclick="if(event.target===this)closeSettings()"><div class="modal smodal" id="sModalBody"></div></div>
 <div class="drawer-ov" id="drOv" onclick="closeCart()"></div>
 <aside class="drawer" id="drawer"></aside>
+<div class="drawer-ov" id="selOv" onclick="closeSel()"></div>
+<aside class="drawer" id="selDr"></aside>
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1795020142"></script>
-<script src="promo.js?v=1795020142"></script>
+<script src="data.js?v=1795020493"></script>
+<script src="promo.js?v=1795020493"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -1375,7 +1412,8 @@ function renderPromo() {
       <select id="prRound" class="sel">${Object.entries({ su: 'arrotonda all\'euro per eccesso', giu: 'arrotonda all\'euro per difetto', no: 'non arrotondare' }).map(([k, l]) => `<option value="${k}" ${(S.prRound || 'su') === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       <span class="pr-ex" id="prEx"></span></div>
       <button class="btn btn-dark" onclick="exportPromoPdf(this)" title="Scarica in PDF quello che vedi qui (filtro e ricerca compresi)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span>Esporta PDF</span></button></div>` : ''}
-    <div class="toolbar pr-bar"><div class="chips" id="prChips"></div></div><div id="prBody"></div>`;
+    <div class="toolbar pr-bar"><div class="chips" id="prChips"></div></div><div id="prBody"></div><div class="sel-bar" id="selBar"></div>`;
+  drawSelBar();
   const inc = document.getElementById('prInc'), rnd = document.getElementById('prRound');
   if (inc) {
     inc.oninput = () => { const v = parseFloat(String(inc.value).replace(',', '.')); S.prInc = isNaN(v) || v < 0 ? 0 : v; saveSettings(); drawPromo(); };
@@ -1399,7 +1437,9 @@ function drawPromo() {
     vis.filter(v => !PF.k || v.g.k === PF.k).map(v => `<button class="chip ${PF.g === v.g.id ? 'on' : ''}" onclick="PF.g=PF.g==='${v.g.id}'?'':'${v.g.id}';drawPromo()"><span class="kd ${v.g.k}"></span>${esc(prTitle(v.g))} <i>${v.ii.length}</i></button>`).join('');
   document.getElementById('prBody').innerHTML = show.length ? show.map(v => {
     const g = v.g, exp = prExpired(g), notes = prNotes(g);
-    return `<section class="pr-sec"><div class="pr-sh"><span class="pr-flag ${g.k}">${g.k === 'promo' ? 'Promo' : 'Netti'}</span><h3>${esc(prTitle(g))}</h3><span class="pr-src">${esc(prSrc(g))} · ${v.ii.length} ${v.ii.length === 1 ? 'prodotto' : 'prodotti'}</span></div>
+    const allSel = v.ii.every(i => isSel(g, g.items[i]));
+    return `<section class="pr-sec"><div class="pr-sh"><span class="pr-flag ${g.k}">${g.k === 'promo' ? 'Promo' : 'Netti'}</span><h3>${esc(prTitle(g))}</h3><span class="pr-src">${esc(prSrc(g))} · ${v.ii.length} ${v.ii.length === 1 ? 'prodotto' : 'prodotti'}</span>
+      <button class="pr-selall" onclick="selGroup(${v.gi})">${allSel ? 'Togli dalla selezione' : 'Seleziona tutti'}</button></div>
       ${notes.length ? `<div class="pr-notes ${g.k}">${notes.map(t => `<div>${esc(t)}</div>`).join('')}${exp ? `<div class="exp">Attenzione: la promo è scaduta il ${exp}, verificare con FIMA se è ancora valida.</div>` : ''}</div>` : ''}
       <div class="grid pr-grid">${v.ii.map(i => prCard(v.gi, i)).join('')}</div></section>`;
   }).join('') : `<div class="empty"><h3>Nessun prodotto in promo o netto</h3>Prova a cambiare la ricerca.</div>`;
@@ -1407,9 +1447,11 @@ function drawPromo() {
 function prCard(gi, ii) {
   const g = PR[gi], x = g.items[ii];
   const p = x.pc ? BY_CODE[x.pc] : null;
-  return `<article class="pcard prc ${x.r.length > 4 ? 'wide' : ''}">
+  const on = isSel(g, x);
+  return `<article class="pcard prc ${x.r.length > 4 ? 'wide' : ''} ${on ? 'sel' : ''}" id="prc-${gi}-${ii}">
     <div class="pimg ${p ? 'lnk' : ''}" ${p ? `onclick="openProduct(${p.i})" title="Apri la scheda del listino"` : ''}>${x.im ? `<img src="${IMG(x.im)}"${x.hi && x.hi !== x.im ? ` srcset="${IMG(x.im)} 440w, ${IMG(x.hi)} 800w" sizes="(max-width: 900px) 50vw, 330px"` : ''} alt="${esc(x.r[0].c)}" loading="lazy">` : '<span class="noimg">foto non disponibile</span>'}
-      <span class="pr-flag ${g.k}">${g.k === 'promo' ? 'Promo' : 'Netti'}</span></div>
+      <span class="pr-flag ${g.k}">${g.k === 'promo' ? 'Promo' : 'Netti'}</span>
+      <button class="pr-sel ${on ? 'on' : ''}" onclick="event.stopPropagation();selToggle(${gi},${ii})" title="Selezione per il PDF (non va nel carrello)"><i></i>${on ? 'Selezionato' : 'Seleziona'}</button></div>
     <div class="pbody"><div class="pcoll">${esc(prTitle(g))}</div><div class="pr-name">${esc(x.t || (p ? p.n : x.r[0].c))}</div>
       ${x.d.length ? `<ul class="pr-desc">${x.d.map(d => `<li>${esc(d)}</li>`).join('')}</ul>` : ''}
       ${prGift(g, x) ? `<div class="pr-gift">${esc(prGift(g, x))}</div>` : ''}
@@ -1435,14 +1477,92 @@ function addPromo(gi, ii, ri) {
   toast(x.im, `<b>${esc(r.c)}</b> aggiunto al carrello${q > 1 ? ' (' + q + ' pz)' : ''}`);
 }
 
-async function exportPromoPdf(btn) {
-  const { show } = prVisible();
-  if (!show.length) return toast('', 'Niente da esportare: cambia filtro o ricerca');
+// ── SELEZIONE PER IL PDF: un carrello della sezione, separato dal carrello vero ──
+// chiave: listino + primo codice della scheda (resta valida se promo.js viene rigenerato) → righe scelte
+let PSEL = lsGet('fima_promo_sel_v1', {});
+const prKey = (g, x) => g.id + '|' + x.r[0].c;
+const PR_AT = {};
+PR.forEach((g, gi) => g.items.forEach((x, ii) => { PR_AT[prKey(g, x)] = [gi, ii]; }));
+Object.keys(PSEL).forEach(k => { if (!PR_AT[k] || !Array.isArray(PSEL[k]) || !PSEL[k].length) delete PSEL[k]; });
+const isSel = (g, x) => !!PSEL[prKey(g, x)];
+function savePSel() { lsSet('fima_promo_sel_v1', PSEL); drawSelBar(); if (document.getElementById('selDr').classList.contains('open')) drawSel(); }
+function selToggle(gi, ii) {
+  const g = PR[gi], x = g.items[ii], k = prKey(g, x);
+  if (PSEL[k]) delete PSEL[k]; else PSEL[k] = x.r.map((r, i) => i);
+  savePSel();
+  const el = document.getElementById(`prc-${gi}-${ii}`);
+  if (el) el.outerHTML = prCard(gi, ii);
+}
+// "Seleziona tutti" del listino: le schede che si vedono (con la ricerca, solo quelle trovate)
+function selGroup(gi) {
+  const g = PR[gi], ii = g.items.map((x, i) => i).filter(i => prMatch(g, g.items[i]));
+  const all = ii.every(i => isSel(g, g.items[i]));
+  ii.forEach(i => { const x = g.items[i], k = prKey(g, x); if (all) delete PSEL[k]; else if (!PSEL[k]) PSEL[k] = x.r.map((r, j) => j); });
+  savePSel(); drawPromo();
+}
+function selRow(gi, ii, ri, on) {
+  const g = PR[gi], x = g.items[ii], k = prKey(g, x);
+  const s = new Set(PSEL[k] || []);
+  if (on) s.add(ri); else s.delete(ri);
+  if (s.size) PSEL[k] = [...s].sort((a, b) => a - b); else delete PSEL[k];
+  savePSel(); refreshSelCard(gi, ii);
+}
+function selDel(gi, ii) { delete PSEL[prKey(PR[gi], PR[gi].items[ii])]; savePSel(); refreshSelCard(gi, ii); }
+function selClear() { if (!confirm('Svuotare la selezione per il PDF?')) return; PSEL = {}; savePSel(); if (route === 'promo') drawPromo(); }
+function refreshSelCard(gi, ii) { const el = document.getElementById(`prc-${gi}-${ii}`); if (el) el.outerHTML = prCard(gi, ii); }
+// la selezione nell'ordine della pagina, come prVisible().show, con le righe scelte di ogni scheda
+function prSelShow() {
+  const out = [];
+  PR.forEach((g, gi) => {
+    const ii = [], rows = {};
+    g.items.forEach((x, i) => { const s = PSEL[prKey(g, x)]; if (s) { ii.push(i); rows[i] = s; } });
+    if (ii.length) out.push({ g, gi, ii, rows });
+  });
+  return out;
+}
+const selCount = s => ({ p: s.reduce((a, v) => a + v.ii.length, 0), c: s.reduce((a, v) => a + v.ii.reduce((b, i) => b + v.rows[i].length, 0), 0) });
+const PDF_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>';
+function drawSelBar() {
+  const el = document.getElementById('selBar');
+  if (!el) return;
+  const n = selCount(prSelShow());
+  el.classList.toggle('on', n.p > 0);
+  if (n.p) el.innerHTML = `<div class="sb-t"><b>Selezione PDF</b><span>${n.p} ${n.p === 1 ? 'prodotto' : 'prodotti'} · ${n.c} ${n.c === 1 ? 'codice' : 'codici'}</span></div>
+    <button class="btn btn-ghost" onclick="openSel()">Vedi</button><button class="btn btn-red" onclick="exportPromoPdf(this, true)">${PDF_ICON}<span>Esporta PDF</span></button>`;
+}
+function openSel() { drawSel(); document.getElementById('selDr').classList.add('open'); document.getElementById('selOv').classList.add('open'); }
+function closeSel() { document.getElementById('selDr').classList.remove('open'); document.getElementById('selOv').classList.remove('open'); }
+function drawSel() {
+  const s = prSelShow(), n = selCount(s);
+  let h = `<div class="dr-head"><div><h2>Selezione per il PDF</h2><div class="sub">${n.p} prodotti · ${n.c} codici · non va nel carrello</div></div>
+    <button class="mclose" onclick="closeSel()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div><div class="dr-body">`;
+  if (!s.length) h += `<div class="dr-empty"><div style="font-weight:700;color:var(--dark);margin-bottom:4px">Nessun prodotto selezionato</div>Premi “Seleziona” sulle schede di Promo e netti: qui scegli i codici da mettere nel PDF.</div>`;
+  s.forEach(v => {
+    h += `<div class="sl-grp"><span class="pr-flag ${v.g.k}">${v.g.k === 'promo' ? 'Promo' : 'Netti'}</span>${esc(prTitle(v.g))}</div>`;
+    v.ii.forEach(i => {
+      const x = v.g.items[i], sel = v.rows[i];
+      h += `<div class="citem"><img src="${IMG(x.im)}" alt=""><div class="ci-main"><div class="ci-top"><div class="ci-name"><b>${esc(x.t || x.r[0].c)}</b></div>
+        <button class="ci-del" onclick="selDel(${v.gi},${i})" title="Togli dalla selezione"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+        <div class="sl-rows">${x.r.map((r, ri) => {
+          const sub = [r.l ? prLabel(r.l) : '', r.q ? 'conf. ' + r.q + ' pz' : ''].filter(Boolean).join(' · ');
+          return `<label class="sl-row"><input type="checkbox" ${sel.includes(ri) ? 'checked' : ''} onchange="selRow(${v.gi},${i},${ri},this.checked)"><div><b>${esc(r.c)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div><span class="num">${fmt(prPrice(v.g, r))}</span></label>`;
+        }).join('')}</div></div></div>`;
+    });
+  });
+  h += `</div><div class="dr-foot"><div class="sl-actions"><button class="btn btn-ghost" onclick="selClear()" ${s.length ? '' : 'disabled'}>Svuota</button>
+    <button class="btn btn-red" onclick="exportPromoPdf(this, true)" ${s.length ? '' : 'disabled'}>${PDF_ICON}<span>Esporta PDF della selezione</span></button></div></div>`;
+  document.getElementById('selDr').innerHTML = h;
+}
+
+// sel = true: solo la selezione; altrimenti quello che si vede (filtro e ricerca)
+async function exportPromoPdf(btn, sel) {
+  const show = sel ? prSelShow() : prVisible().show;
+  if (!show.length) return toast('', sel ? 'Seleziona almeno un prodotto' : 'Niente da esportare: cambia filtro o ricerca');
   const lbl = btn.querySelector('span'), old = lbl.textContent;
   btn.disabled = true;
   try {
     const doc = await PromoPdf.build(show, (n, tot) => { lbl.textContent = `Creo il PDF… ${n}/${tot}`; });
-    const name = PromoPdf.fileName(show);
+    const name = PromoPdf.fileName(show, sel ? 'Selezione' : '');
     doc.save(name);
     toast('', 'PDF scaricato: ' + esc(name));
   } catch (err) {
@@ -1466,7 +1586,7 @@ document.getElementById('q').addEventListener('input', e => {
   }, 160);
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if (window.Proposte && Proposte.isOpen()) Proposte.back(); else if (document.getElementById('sModal').classList.contains('open')) closeSettings(); else if (M) closeModal(); else closeCart(); }
+  if (e.key === 'Escape') { if (window.Proposte && Proposte.isOpen()) Proposte.back(); else if (document.getElementById('sModal').classList.contains('open')) closeSettings(); else if (M) closeModal(); else { closeCart(); closeSel(); } }
   if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') { e.preventDefault(); document.getElementById('q').focus(); }
 });
 
@@ -1476,7 +1596,7 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1795020142"></script>
-<script src="promo-pdf.js?v=1795020142"></script>
+<script src="proposta.js?v=1795020493"></script>
+<script src="promo-pdf.js?v=1795020493"></script>
 </body>
 </html>

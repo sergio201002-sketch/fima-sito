@@ -58,11 +58,11 @@ window.PromoPdf = (function () {
     const k = new Set(show.map(v => v.g.k));
     return k.size > 1 ? 'Promo e prezzi netti' : k.has('promo') ? 'Promo' : 'Prezzi netti';
   }
-  function fileName(show) {
+  function fileName(show, pre) {
     const clean = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
     const g = show.length === 1 ? show[0].g : null;
     const t = g ? (g.k === 'promo' ? 'Promo ' : 'Netti ') + prTitle(g) : docTitle(show);
-    return `${clean(t)}_FIMA_${isoToday()}.pdf`;
+    return `${clean((pre ? pre + ' ' : '') + t)}_FIMA_${isoToday()}.pdf`;
   }
 
   async function build(show, progress) {
@@ -164,7 +164,9 @@ window.PromoPdf = (function () {
       y = Math.max(169, y + 8);
 
       for (const i of v.ii) {
-        const x = g.items[i];
+        // dalla selezione: solo i codici spuntati della scheda
+        const x = v.rows && v.rows[i] ? { ...g.items[i], r: v.rows[i].map(k => g.items[i].r[k]).filter(Boolean) } : g.items[i];
+        if (!x.r.length) continue;
         // misure: testo a sinistra, tabella a destra, foto in mezzo alta quanto serve
         font('helvetica', 'bold', 8);
         const tl = doc.splitTextToSize(pdfTxt(x.t || x.r[0].c), 185);
