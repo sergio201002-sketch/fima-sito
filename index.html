@@ -567,9 +567,46 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
   .prc.wide .pimg { width: 40%; flex-shrink: 0; aspect-ratio: auto; min-height: 320px; }
   .prc.wide .pbody { border-top: none; border-left: 1px solid var(--bg2); }
 }
+/* colonne doccia: tabella soffioni × doccette come nel PDF promo (bordi rossi, codice sopra e prezzo sotto) */
+.prc.mx { grid-column: 1 / -1; }
+.prc.mx .pimg { aspect-ratio: auto; height: 320px; }
+.pr-mxs { display: flex; flex-wrap: wrap; gap: 20px 30px; align-items: flex-start; margin-top: 10px; }
+.pr-mx-w { max-width: 100%; overflow-x: auto; }
+.pr-mx { border-collapse: collapse; }
+.pr-mx thead th { padding: 0 4px 8px; vertical-align: bottom; text-align: center; font-weight: 400; }
+.pr-mx thead img { display: block; height: 34px; max-width: 100px; object-fit: contain; margin: 0 auto 6px; }
+.pr-mx thead span { display: block; font-size: 9.5px; letter-spacing: .04em; color: var(--mid); white-space: nowrap; }
+.pr-mx thead b { display: block; font-size: 11.5px; font-weight: 800; white-space: nowrap; }
+.pr-mx .mx-dc { padding: 0 10px 0 0; width: 1px; vertical-align: middle; }
+.pr-mx .mx-dc img { display: block; height: 54px; max-width: 30px; object-fit: contain; margin: 0 auto; }
+.pr-mx td { border: 1px solid var(--red); min-width: 132px; padding: 0; text-align: center; vertical-align: top; }
+.pr-mx td.mx-no { border: none; }
+.mx-code { font-family: var(--font-display); font-size: 12.5px; font-weight: 800; padding: 7px 8px 6px; border-bottom: 1px solid var(--red); white-space: nowrap; }
+.mx-pr { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 6px 8px 4px; }
+.mx-pr .pr-pr b { font-size: 15px; }
+.mx-pr .pr-add { width: 26px; height: 26px; font-size: 16px; border-radius: 7px; }
+.pr-mx td .pr-tier { padding: 0 6px 6px; font-size: 10px; line-height: 1.35; }
+@media (min-width: 901px) {
+  .prc.mx { flex-direction: row; }
+  .prc.mx .pimg { width: 26%; min-width: 230px; flex-shrink: 0; height: auto; min-height: 380px; }
+  .prc.mx .pbody { border-top: none; border-left: 1px solid var(--bg2); padding: 18px 22px 20px; }
+}
 @media (max-width: 560px) {
   .grid.pr-grid { grid-template-columns: 1fr; }
   .prc .pimg { aspect-ratio: auto; height: 210px; }
+  .prc.mx .pimg { height: 300px; }
+  .pr-mx td { min-width: 0; }
+  .pr-mx thead th { padding: 0 2px 6px; }
+  .pr-mx thead img { height: 26px; max-width: 80px; }
+  .pr-mx thead span { font-size: 8.5px; letter-spacing: 0; }
+  .pr-mx thead b { font-size: 10.5px; }
+  .mx-code { font-size: 10px; padding: 6px 3px 5px; }
+  .mx-pr { gap: 4px; padding: 5px 3px 3px; }
+  .mx-pr .pr-pr b { font-size: 13px; }
+  .mx-pr .pr-add { width: 22px; height: 22px; font-size: 14px; border-radius: 6px; }
+  .pr-mx td .pr-tier { font-size: 9.5px; padding: 0 3px 5px; }
+  .pr-mx .mx-dc { padding-right: 5px; }
+  .pr-mx .mx-dc img { height: 44px; max-width: 20px; }
   .pr-home { padding: 14px 16px; gap: 12px; }
   .pr-home .fl { flex-direction: column; }
   .pr-home b { font-size: 16px; }
@@ -677,8 +714,8 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1795020493"></script>
-<script src="promo.js?v=1795020493"></script>
+<script src="data.js?v=1795168476"></script>
+<script src="promo.js?v=1795168476"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -1380,7 +1417,8 @@ function prTiersOf(g) {
   return g._t;
 }
 // pezzi di quel solo articolo per arrivare a ogni sconto: "−5% da 11 pz · −10% da 17 pz"
-const prTierTxt = (g, r) => prTiersOf(g).map(t => `−${t.pct}% da ${t.upTo ? 1 : Math.floor(t.eur / r.p) + 1} pz`).join(' · ');
+const prTierList = (g, r) => prTiersOf(g).map(t => `−${t.pct}% da ${t.upTo ? 1 : Math.floor(t.eur / r.p) + 1} pz`);
+const prTierTxt = (g, r) => prTierList(g, r).join(' · ');
 const PR_TIER_NOTE = 'Sotto ogni codice: i pezzi di quel solo articolo per arrivare a ogni sconto. Negli ordini misti conta il totale imponibile.';
 // "Con ordine minimo di 10 colonne assortite 10 mensole F2899 in omaggio": scritto sulle schede delle colonne
 const prGift = (g, x) => /colonn/i.test(x.t) && g.notes.find(t => /omaggio/i.test(t)) || '';
@@ -1448,20 +1486,35 @@ function prCard(gi, ii) {
   const g = PR[gi], x = g.items[ii];
   const p = x.pc ? BY_CODE[x.pc] : null;
   const on = isSel(g, x);
-  return `<article class="pcard prc ${x.r.length > 4 ? 'wide' : ''} ${on ? 'sel' : ''}" id="prc-${gi}-${ii}">
+  return `<article class="pcard prc ${x.m ? 'mx' : x.r.length > 4 ? 'wide' : ''} ${on ? 'sel' : ''}" id="prc-${gi}-${ii}">
     <div class="pimg ${p ? 'lnk' : ''}" ${p ? `onclick="openProduct(${p.i})" title="Apri la scheda del listino"` : ''}>${x.im ? `<img src="${IMG(x.im)}"${x.hi && x.hi !== x.im ? ` srcset="${IMG(x.im)} 440w, ${IMG(x.hi)} 800w" sizes="(max-width: 900px) 50vw, 330px"` : ''} alt="${esc(x.r[0].c)}" loading="lazy">` : '<span class="noimg">foto non disponibile</span>'}
       <span class="pr-flag ${g.k}">${g.k === 'promo' ? 'Promo' : 'Netti'}</span>
       <button class="pr-sel ${on ? 'on' : ''}" onclick="event.stopPropagation();selToggle(${gi},${ii})" title="Selezione per il PDF (non va nel carrello)"><i></i>${on ? 'Selezionato' : 'Seleziona'}</button></div>
     <div class="pbody"><div class="pcoll">${esc(prTitle(g))}</div><div class="pr-name">${esc(x.t || (p ? p.n : x.r[0].c))}</div>
       ${x.d.length ? `<ul class="pr-desc">${x.d.map(d => `<li>${esc(d)}</li>`).join('')}</ul>` : ''}
       ${prGift(g, x) ? `<div class="pr-gift">${esc(prGift(g, x))}</div>` : ''}
-      <div class="pr-rows">${x.r.map((r, ri) => {
+      ${x.m ? prMatrix(gi, ii) : `<div class="pr-rows">${x.r.map((r, ri) => {
         const sub = [r.l ? prLabel(r.l) : '', r.q ? 'conf. ' + r.q + ' pz' : ''].filter(Boolean).join(' · ');
         const pp = prPrice(g, r), tier = prTierTxt(g, r);
         return `<div class="pr-row"><div class="pr-c"><b>${esc(r.c)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}${tier ? `<em class="pr-tier">${esc(tier)}</em>` : ''}</div>
           <div class="pr-pr num">${r.lp > pp ? `<s title="Prezzo di listino">${fmt(r.lp)}</s>` : ''}<b${pp !== r.p ? ` title="Netto 2024: ${fmt(r.p)} + ${prPct()}"` : ''}>${fmt(pp)}</b></div>
           <button class="pr-add" onclick="addPromo(${gi},${ii},${ri})" title="Aggiungi al carrello${r.q ? ' (confezione da ' + r.q + ')' : ''}">+</button></div>`;
-      }).join('')}</div></div></article>`;
+      }).join('')}</div>`}</div></article>`;
+}
+// colonne doccia: come nel PDF promo, soffioni in colonna e doccette in riga, in ogni casella codice e prezzo (x.m da colonne.py)
+function prMatrix(gi, ii) {
+  const g = PR[gi], x = g.items[ii];
+  const cell = ri => {
+    if (ri < 0) return '<td class="mx-no"></td>';
+    const r = x.r[ri], pp = prPrice(g, r), tiers = prTierList(g, r);
+    return `<td><div class="mx-code">${esc(r.c)}</div>
+      <div class="mx-pr"><span class="pr-pr num">${r.lp > pp ? `<s title="Prezzo di listino">${fmt(r.lp)}</s>` : ''}<b>${fmt(pp)}</b></span>
+        <button class="pr-add" onclick="addPromo(${gi},${ii},${ri})" title="Aggiungi al carrello">+</button></div>
+      ${tiers.length ? `<em class="pr-tier">${tiers.map(esc).join('<br>')}</em>` : ''}</td>`;
+  };
+  return `<div class="pr-mxs">${x.m.map(t => `<div class="pr-mx-w"><table class="pr-mx">
+    <thead><tr><th class="mx-dc"></th>${t.h.map(h => `<th>${h.im ? `<img src="${IMG(h.im)}" alt="" loading="lazy">` : ''}<span>${esc(h.a)}</span><b>${esc(h.b)}</b></th>`).join('')}</tr></thead>
+    <tbody>${t.rw.map(w => `<tr><th class="mx-dc">${w.im ? `<img src="${IMG(w.im)}" alt="" loading="lazy">` : ''}</th>${w.c.map(cell).join('')}</tr>`).join('')}</tbody></table></div>`).join('')}</div>`;
 }
 // nel carrello: prezzo netto fisso (np) = prezzo promo/netto; lordo = listino se il codice è a listino
 function addPromo(gi, ii, ri) {
@@ -1596,7 +1649,7 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1795020493"></script>
-<script src="promo-pdf.js?v=1795020493"></script>
+<script src="proposta.js?v=1795168476"></script>
+<script src="promo-pdf.js?v=1795168476"></script>
 </body>
 </html>
