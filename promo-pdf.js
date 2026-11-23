@@ -71,8 +71,11 @@ window.PromoPdf = (function () {
     doc.addFileToVFS('Jost-Light.ttf', window.JOST_LIGHT_TTF);
     doc.addFont('Jost-Light.ttf', 'Jost-Light', 'normal');
 
-    // foto prima di tutto (6 alla volta), con il conteggio sul pulsante
-    const srcs = [...new Set(show.flatMap(v => v.ii.map(i => v.g.items[i].hi || v.g.items[i].im)).filter(Boolean))];
+    // foto prima di tutto (6 alla volta), con il conteggio sul pulsante; per le colonne doccia anche soffioni e doccette
+    const srcs = [...new Set(show.flatMap(v => v.ii.flatMap(i => {
+      const x = v.g.items[i];
+      return [x.hi || x.im, ...(x.m || []).flatMap(t => [...t.h.map(h => h.im), ...t.rw.map(w => w.im)])];
+    })).filter(Boolean))];
     const pics = new Map();
     let done = 0;
     progress && progress(0, srcs.length);
@@ -123,6 +126,83 @@ window.PromoPdf = (function () {
       return w;
     }
 
+    function addPic(pic, x, y, w, h) {
+      if (!alias.has(pic.url)) alias.set(pic.url, 'f' + alias.size);
+      doc.addImage(pic.url, 'JPEG', x, y, w, h, alias.get(pic.url));
+    }
+    // immagine dentro un riquadro: centrata in orizzontale, appoggiata in basso (soffioni) o centrata (doccette)
+    function fitPic(src, cx, top, bw, bh, mid) {
+      const pic = pics.get(src);
+      if (!pic) return;
+      const k = Math.min(bw / pic.w, bh / pic.h), w = pic.w * k, h = pic.h * k;
+      addPic(pic, cx - w / 2, mid ? top + (bh - h) / 2 : top + bh - h, w, h);
+    }
+    // colonne doccia, come nel PDF promo FIMA: foto alta a sinistra, nome e punti, poi le tabelle con i soffioni
+    // in colonna e le doccette in riga, in ogni casella a bordo rosso il codice sopra e il prezzo sotto.
+    // Dalla selezione: solo le righe e le colonne con codici spuntati (le altre caselle restano vuote).
+    const MX = 178, CW = 85, CODE_H = 21, HEAD_H = 46, PHOTO_W = 132;
+    function matrixBlock(g, x, sel, y) {
+      const on = ri => ri >= 0 && (!sel || sel.has(ri));
+      const T = x.m.map(t => {
+        const cols = t.h.map((h, j) => j).filter(j => t.rw.some(w => on(w.c[j])));
+        return { h: t.h, cols, rws: t.rw.filter(w => cols.some(j => on(w.c[j]))) };
+      }).filter(t => t.cols.length);
+      if (!T.length) return y;
+      const tiers = ri => { font('helvetica', 'bold', 6, RED); return on(ri) ? doc.splitTextToSize(pdfTxt(prTierTxt(g, x.r[ri])), CW - 6) : []; };
+      T.forEach(t => t.rws.forEach(w => { w._ph = 15 + Math.max(0, ...t.cols.map(j => tiers(w.c[j]).length)) * 7; }));
+      const tablesH = T.reduce((a, t) => a + HEAD_H + t.rws.reduce((b, w) => b + CODE_H + w._ph, 0) + 18, 0);
+      font('helvetica', 'bold', 9);
+      const tl = doc.splitTextToSize(pdfTxt((x.t || x.r[0].c).toUpperCase()), 215);
+      font('helvetica', 'normal', 8.5);
+      const bl = x.d.flatMap(d => doc.splitTextToSize('• ' + pdfTxt(d), RX - MX));
+      const gift = prGift(g, x);
+      font('helvetica', 'bold', 7.5);
+      const gl = gift ? doc.splitTextToSize(pdfTxt(gift), RX - MX) : [];
+      const textH = 20 + (tl.length - 1) * 11 + (bl.length ? 6 + bl.length * 10.5 : 0) + (gl.length ? 6 + gl.length * 9 : 0) + 16;
+      const pic = pics.get(x.hi || x.im);
+      let pw = 0, ph = 0;
+      if (pic) { const k = Math.min(PHOTO_W / pic.w, Math.max(textH + tablesH - 30, 260) / pic.h); pw = pic.w * k; ph = pic.h * k; }
+      const h = Math.max(textH + tablesH, ph + 20);
+      if (y + h > BOTTOM) { hline(LX, RX, y); newPage(); y = TOP; }
+      const y0 = y;
+      hline(LX, RX, y0);
+      if (pic) addPic(pic, LX + (PHOTO_W - pw) / 2, y0 + 10, pw, ph);
+      // nome e punti
+      font('helvetica', 'bold', 9);
+      doc.text(tl, MX, y0 + 20, { lineHeightFactor: 11 / 9 });
+      let ty = y0 + 20 + (tl.length - 1) * 11 + 16;
+      font('helvetica', 'normal', 8.5);
+      bl.forEach(l => { doc.text(l, MX, ty); ty += 10.5; });
+      if (gl.length) { font('helvetica', 'bold', 7.5, RED); ty += 4; gl.forEach(l => { doc.text(l, MX, ty); ty += 9; }); }
+      // tabelle
+      ty = y0 + textH;
+      T.forEach(t => {
+        t.cols.forEach((j, k) => {
+          const hd = t.h[j], cx = MX + k * CW + CW / 2;
+          if (hd.im) fitPic(hd.im, cx, ty, 64, 25);
+          font('helvetica', 'normal', 6.3); doc.text(pdfTxt(hd.a), cx, ty + 34, { align: 'center' });
+          font('helvetica', 'bold', 6.5); doc.text(pdfTxt(hd.b), cx, ty + 41.5, { align: 'center' });
+        });
+        let ry = ty + HEAD_H;
+        t.rws.forEach(w => {
+          if (w.im) fitPic(w.im, MX - 13, ry + 3, 16, CODE_H + w._ph - 6, true);
+          t.cols.forEach((j, k) => {
+            if (!on(w.c[j])) return;
+            const r = x.r[w.c[j]], cx0 = MX + k * CW, cx = cx0 + CW / 2;
+            doc.setDrawColor(RED); doc.setLineWidth(0.6);
+            doc.rect(cx0, ry, CW, CODE_H); doc.rect(cx0, ry + CODE_H, CW, w._ph);
+            font('helvetica', 'normal', 7.5); doc.text(r.c, cx, ry + 13.3, { align: 'center' });
+            doc.text('€ ' + price(prPrice(g, r)), cx, ry + CODE_H + 10.5, { align: 'center' });
+            const tt = tiers(w.c[j]);
+            if (tt.length) { font('helvetica', 'bold', 6, RED); doc.text(tt, cx, ry + CODE_H + 18, { align: 'center', lineHeightFactor: 7 / 6 }); }
+          });
+          ry += CODE_H + w._ph;
+        });
+        ty = ry + 18;
+      });
+      return y0 + h;
+    }
+
     // ── copertina ──
     const title = docTitle(show).toUpperCase();
     const lines = title.length > 14 ? title.replace(' E ', ' E|').split('|') : [title];
@@ -164,6 +244,7 @@ window.PromoPdf = (function () {
       y = Math.max(169, y + 8);
 
       for (const i of v.ii) {
+        if (g.items[i].m) { y = matrixBlock(g, g.items[i], v.rows && v.rows[i] ? new Set(v.rows[i]) : null, y); continue; }
         // dalla selezione: solo i codici spuntati della scheda
         const x = v.rows && v.rows[i] ? { ...g.items[i], r: v.rows[i].map(k => g.items[i].r[k]).filter(Boolean) } : g.items[i];
         if (!x.r.length) continue;
