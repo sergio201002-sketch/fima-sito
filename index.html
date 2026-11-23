@@ -722,8 +722,8 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1795430225"></script>
-<script src="promo.js?v=1795430225"></script>
+<script src="data.js?v=1795430618"></script>
+<script src="promo.js?v=1795430618"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -1281,11 +1281,25 @@ function setReferente(sel) {
   } else S.ref = sel.value;
   saveSettings(); drawCart();
 }
+// nei testi il nome porta la serie in maiuscolo: "SLIDE miscelatore lavabo" (se il nome la contiene già,
+// "…incasso Switch due uscite", la si scrive in maiuscolo lì). Le famiglie (Soffioni, Accessori…) non sono serie.
+const NOT_SERIES = new Set(['Accessori', 'Collettività', 'Complementi bagno', 'Soffioni', 'Soffioni incasso', 'Colonne doccia', 'Doccette',
+  'Set doccia', 'Saliscendi', 'Complementi doccia', 'Kitchen', 'Outdoor', 'Corpi incasso']);
+const isSeries = s => !!s && !NOT_SERIES.has(s) && COLS.some(x => x.n === s);
+// prodotti del listino: la collezione da cui sono stati aggiunti; promo e netti: la serie del codice a listino o del listino netti
+const seriesOf = c => [c.coll, BY_CODE[c.pc] && BY_CODE[c.pc].s, String(c.coll || '').replace(/^Netti /, '')].find(isSeries) || '';
+function fullName(c) {
+  const s = seriesOf(c);
+  if (!s) return c.name;
+  const re = new RegExp('(^|[^\\p{L}])(' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?=[^\\p{L}]|$)', 'iu');
+  if (re.test(c.name)) return c.name.replace(re, (m, a) => a + s.toUpperCase());
+  return s.toUpperCase() + ' ' + (/^\p{Lu}\p{Ll}/u.test(c.name) ? c.name[0].toLowerCase() + c.name.slice(1) : c.name);
+}
 const greeting = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera'; };
 // "Buongiorno Maristella,\nordinare campioni per Rossi:\nMiscelatore lavabo – F5801CR"
 function campText() {
   let s = `${greeting()} ${curRef()},\nordinare campioni per ${CLIENT.name.trim() || '(cliente)'}:\n`;
-  CART.forEach(c => { s += `${c.name} – ${c.code}${c.qty > 1 ? ' x' + c.qty : ''}\n`; });
+  CART.forEach(c => { s += `${fullName(c)} – ${c.code}${c.qty > 1 ? ' x' + c.qty : ''}\n`; });
   if (CLIENT.note.trim()) s += `\n${CLIENT.note.trim()}\n`;
   return s;
 }
@@ -1307,7 +1321,7 @@ function orderText() {
     if (CLIENT.name) s += `Cliente: ${CLIENT.name}\n`;
     if (CLIENT.ref) s += `Rif.: ${CLIENT.ref}\n`;
     s += `Data: ${new Date().toLocaleDateString('it-IT')}\n\n`;
-    CART.forEach(c => { s += `• ${c.code}  x${c.qty}\n   ${c.name}${c.fin ? ' – ' + c.fin + ' ' + c.finName : ''}${c.var ? ' – ' + c.var : ''}\n`; });
+    CART.forEach(c => { s += `• ${c.code}  x${c.qty}\n   ${fullName(c)}${c.fin ? ' – ' + c.fin + ' ' + c.finName : ''}${c.var ? ' – ' + c.var : ''}\n`; });
     if (CLIENT.note) s += `\nNote: ${CLIENT.note}\n`;
     return s;
   }
@@ -1319,7 +1333,7 @@ function orderText() {
   CART.forEach(c => {
     const d = itemDisc(c);
     const how = hasNp(c) ? ` – netto ${fmt(c.np)}` : discMul(d) < 1 ? ` – sconto ${d} → ${fmt(unitNet(c))}` : '';
-    s += `• ${c.code}  x${c.qty}\n   ${c.name}${c.fin ? ' – ' + c.fin + ' ' + c.finName : ''}${c.var ? ' – ' + c.var : ''}\n   Lordo ${fmt(c.price)}${how} cad.${c.qty > 1 ? ` = ${fmt(lineNet(c))}` : ''}\n`;
+    s += `• ${c.code}  x${c.qty}\n   ${fullName(c)}${c.fin ? ' – ' + c.fin + ' ' + c.finName : ''}${c.var ? ' – ' + c.var : ''}\n   Lordo ${fmt(c.price)}${how} cad.${c.qty > 1 ? ` = ${fmt(lineNet(c))}` : ''}\n`;
   });
   s += `\nTotale lordo: ${fmt(t.lis)}\n`;
   if (t.lis - t.nt > 0.004) s += `${discLabel()}: −${fmt(t.lis - t.nt)}\nNetto: ${fmt(t.nt)}\n`;
@@ -1707,7 +1721,7 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1795430225"></script>
-<script src="promo-pdf.js?v=1795430225"></script>
+<script src="proposta.js?v=1795430618"></script>
+<script src="promo-pdf.js?v=1795430618"></script>
 </body>
 </html>
