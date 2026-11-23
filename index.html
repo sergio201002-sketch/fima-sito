@@ -326,7 +326,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 .tot-opts { display: flex; gap: 14px; align-items: center; margin: 6px 0 2px; font-size: 12px; color: var(--dark2); flex-wrap: wrap; }
 .tot-opts label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; }
 .tot-opts input[type=text] { width: 90px; height: 28px; border: 1px solid var(--border2); border-radius: 6px; padding: 0 8px; font-weight: 700; outline: none; }
-/* modo del carrello: preventivo / ordine senza prezzi / ordina campioni */
+/* modo del carrello: preventivo / ordine senza prezzi / ordina basette */
 .dr-mode { margin-bottom: 10px; }
 .dr-mode button { flex: 1; height: 32px; padding: 0 8px; font-size: 12px; }
 .drawer.noprice .ci-disc, .drawer.noprice .ci-pct, .drawer.noprice .ci-prices { display: none; }
@@ -722,8 +722,8 @@ main { max-width: 1480px; margin: 0 auto; padding: 0 28px 80px; }
 <div class="toast" id="toast"></div>
 
 <!-- ?v= cambia a ogni pubblicazione (pubblica.sh): i browser riscaricano il listino aggiornato -->
-<script src="data.js?v=1795430618"></script>
-<script src="promo.js?v=1795430618"></script>
+<script src="data.js?v=1795431597"></script>
+<script src="promo.js?v=1795431597"></script>
 <script>
 'use strict';
 const D = window.FIMA;
@@ -1269,8 +1269,8 @@ function drawCart() {
   dr.classList.toggle('noprice', m !== 'prev');
   drawCampPrev();
 }
-// carrello: preventivo (con prezzi), ordine senza prezzi, ordine campioni (testo per il referente FIMA)
-const CART_MODES = { prev: 'Preventivo', ord: 'Ordine senza prezzi', camp: 'Ordina campioni' };
+// carrello: preventivo (con prezzi), ordine senza prezzi, ordine basette (testo per il referente FIMA)
+const CART_MODES = { prev: 'Preventivo', ord: 'Ordine senza prezzi', camp: 'Ordina basette' };
 const cartMode = () => CART_MODES[S.cartMode] ? S.cartMode : 'prev';
 const refList = () => S.refs && S.refs.length ? S.refs : ['Duilio', 'Maristella'];
 const curRef = () => refList().includes(S.ref) ? S.ref : refList()[0];
@@ -1296,14 +1296,14 @@ function fullName(c) {
   return s.toUpperCase() + ' ' + (/^\p{Lu}\p{Ll}/u.test(c.name) ? c.name[0].toLowerCase() + c.name.slice(1) : c.name);
 }
 const greeting = () => { const h = new Date().getHours(); return h < 13 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera'; };
-// "Buongiorno Maristella,\nordinare campioni per Rossi:\nMiscelatore lavabo – F5801CR"
+// "Buongiorno Maristella,\nordinare basette per Rossi:\nSLIDE miscelatore lavabo – F5801CR"
 function campText() {
-  let s = `${greeting()} ${curRef()},\nordinare campioni per ${CLIENT.name.trim() || '(cliente)'}:\n`;
+  let s = `${greeting()} ${curRef()},\nordinare basette per ${CLIENT.name.trim() || '(cliente)'}:\n`;
   CART.forEach(c => { s += `${fullName(c)} – ${c.code}${c.qty > 1 ? ' x' + c.qty : ''}\n`; });
   if (CLIENT.note.trim()) s += `\n${CLIENT.note.trim()}\n`;
   return s;
 }
-function drawCampPrev() { const el = document.getElementById('campPrev'); if (el) el.textContent = campText(); }
+function drawCampPrev() { const el = document.getElementById('campPrev'); if (el) el.textContent = orderText(); }
 function cq(k, d) { CART[k].qty = Math.max(1, CART[k].qty + d); saveCart(); drawCart(); }
 function openFromCart(k) {
   const c = CART[k];
@@ -1313,7 +1313,9 @@ function openFromCart(k) {
   const r = p.main.find(r => orderCode(r, c.fin) === c.code);
   openProduct(i, r ? { grp: r.l || 'Standard', fin: c.fin } : {});
 }
-function orderText() {
+// ogni testo (basette, ordine, preventivo) si chiude con "Grazie, saluti"
+const orderText = () => orderBody().replace(/\n+$/, '') + '\n\nGrazie, saluti\n';
+function orderBody() {
   const m = cartMode();
   if (m === 'camp') return campText();
   if (m === 'ord') {   // solo prodotti e quantità, senza prezzi
@@ -1342,17 +1344,17 @@ function orderText() {
   if (CLIENT.note) s += `\nNote: ${CLIENT.note}\n`;
   return s;
 }
-// i campioni si ordinano "per" un cliente: senza nome si chiede di scriverlo
+// le basette si ordinano "per" un cliente: senza nome si chiede di scriverlo
 function needClient() {
   if (cartMode() !== 'camp' || CLIENT.name.trim()) return false;
-  toast('', 'Scrivi il nome del cliente per l\'ordine campioni');
+  toast('', 'Scrivi il nome del cliente per l\'ordine basette');
   const el = document.getElementById('cliName'); if (el) el.focus();
   return true;
 }
 function copyOrder() {
   if (needClient()) return;
   const txt = orderText();
-  const done = () => toast('', { prev: 'Testo del preventivo copiato', ord: 'Testo dell\'ordine copiato', camp: 'Testo per i campioni copiato' }[cartMode()]);
+  const done = () => toast('', { prev: 'Testo del preventivo copiato', ord: 'Testo dell\'ordine copiato', camp: 'Testo per le basette copiato' }[cartMode()]);
   if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(done, () => fallbackCopy(txt, done));
   else fallbackCopy(txt, done);
 }
@@ -1721,7 +1723,7 @@ applyDisc();
 updateCartBtn();
 render();
 </script>
-<script src="proposta.js?v=1795430618"></script>
-<script src="promo-pdf.js?v=1795430618"></script>
+<script src="proposta.js?v=1795431597"></script>
+<script src="promo-pdf.js?v=1795431597"></script>
 </body>
 </html>
